@@ -1,0 +1,11 @@
+{
+  "name": "pathfinder-api",
+  "version": "1.0.0",
+  "description": "Serverless API functions for Pathfinder",
+  "type": "module",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "groq-sdk": "^0.8.0"
+  }
+}
+
