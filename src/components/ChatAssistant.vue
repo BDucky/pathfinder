@@ -19,24 +19,45 @@ const quickActions = [
   { icon: '❓', text: 'Hỏi đáp', prompt: '' },
 ]
 
-// Check if user has at least one AI API key
+// Treat backend mode as available even without local keys
+import { getActiveMode, apiRequest } from '../config/api'
+// Check if user has at least one AI API key or backend is enabled
 const hasAIKey = computed(() => {
+  const mode = getActiveMode()
+  if (mode === 'backend') return true
   const geminiKey = localStorage.getItem('gemini_api_key')
   const groqKey = localStorage.getItem('groq_api_key')
   return !!(geminiKey || groqKey)
 })
 
-// Check which AI providers are available
-const availableProviders = computed(() => {
-  const providers = []
-  if (localStorage.getItem('gemini_api_key')) {
-    providers.push({ id: 'gemini', name: 'Google Gemini', icon: '🤖', speed: 'Chuẩn' })
+// Providers available list (reactive)
+const providers = ref([])
+
+// Resolve providers based on mode
+async function resolveProviders() {
+  const mode = getActiveMode()
+  if (mode === 'backend') {
+    try {
+      const data = await apiRequest('/providers', {})
+      const list = []
+      if (data?.providers?.gemini) list.push({ id: 'gemini', name: 'Google Gemini', icon: '🤖', speed: 'Chuẩn' })
+      if (data?.providers?.groq) list.push({ id: 'groq', name: 'Groq (Llama 3.3)', icon: '⚡', speed: 'Siêu nhanh' })
+      providers.value = list
+    } catch (e) {
+      // Fallback: assume at least Gemini available if backend mode enabled
+      providers.value = [
+        { id: 'gemini', name: 'Google Gemini', icon: '🤖', speed: 'Chuẩn' }
+      ]
+    }
+  } else {
+    const list = []
+    if (localStorage.getItem('gemini_api_key')) list.push({ id: 'gemini', name: 'Google Gemini', icon: '🤖', speed: 'Chuẩn' })
+    if (localStorage.getItem('groq_api_key')) list.push({ id: 'groq', name: 'Groq (Llama 3.3)', icon: '⚡', speed: 'Siêu nhanh' })
+    providers.value = list
   }
-  if (localStorage.getItem('groq_api_key')) {
-    providers.push({ id: 'groq', name: 'Groq (Llama 3.3)', icon: '⚡', speed: 'Siêu nhanh' })
-  }
-  return providers
-})
+}
+
+const availableProviders = computed(() => providers.value)
 
 // Current provider info
 const currentProvider = computed(() => {
@@ -47,6 +68,7 @@ onMounted(() => {
   // Load saved messages and preferences
   chatStore.loadMessages()
   chatStore.loadProviderPreference()
+  resolveProviders()
 
   // Initialize chat with learning path context if available
   if (pathStore.learningPath && chatStore.messages.length === 0) {

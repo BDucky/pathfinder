@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { usePathStore } from './stores/path'
+import { getActiveMode } from './config/api'
 import ApiSettings from './components/ApiSettings.vue'
 import PathGeneratorForm from './components/PathGeneratorForm.vue'
 import LearningPathDisplay from './components/LearningPathDisplay.vue'
@@ -11,16 +12,22 @@ const showApiSettings = ref(false)
 const hasApiKeys = ref(false)
 
 onMounted(() => {
-  // Kiểm tra xem có API keys không
-  const geminiKey = localStorage.getItem('gemini_api_key')
-  const youtubeKey = localStorage.getItem('youtube_api_key')
-  hasApiKeys.value = !!(geminiKey && youtubeKey)
-  
-  // Tự động hiển thị settings nếu chưa có keys
-  if (!hasApiKeys.value) {
-    showApiSettings.value = true
+  // Ưu tiên backend mode: không yêu cầu người dùng nhập API keys
+  const mode = getActiveMode()
+  if (mode === 'backend') {
+    hasApiKeys.value = true
+  } else {
+    // Kiểm tra xem có API keys không (client mode)
+    const geminiKey = localStorage.getItem('gemini_api_key')
+    const youtubeKey = localStorage.getItem('youtube_api_key')
+    hasApiKeys.value = !!(geminiKey && youtubeKey)
+
+    // Tự động hiển thị settings nếu chưa có keys
+    if (!hasApiKeys.value) {
+      showApiSettings.value = true
+    }
   }
-  
+
   // Tải lộ trình đã lưu nếu có
   pathStore.loadSavedPath()
 })
