@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       return sendError(res, 400, 'Invalid topic')
     }
 
-    const validLevels = ['Beginner', 'Intermediate', 'Advanced', 'Expert']
+    const validLevels = ['beginner', 'intermediate', 'advanced', 'expert']
     // Normalize level (accept lowercase values from client)
     const normalizedLevel = typeof level === 'string'
       ? level.trim().toLowerCase()
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     // Initialize Gemini AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
     // Use current Gemini model naming (1.5-pro)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
 
     // Generate learning path using AI
     const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap.
