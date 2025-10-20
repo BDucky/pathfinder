@@ -13,7 +13,8 @@ import {
   sendSuccess,
   validateEnvVars,
   checkRateLimit,
-  getClientIP
+  getClientIP,
+  parseJsonBody
 } from './_utils.js'
 
 export default async function handler(req, res) {
@@ -32,8 +33,9 @@ export default async function handler(req, res) {
       return sendError(res, 429, 'Too many requests. Please try again later.')
     }
 
-    // Validate request body
-    const { message, provider, systemContext, conversationHistory } = req.body
+    // Validate request body (parse if needed)
+    const body = await parseJsonBody(req)
+    const { message, provider, systemContext, conversationHistory } = body
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return sendError(res, 400, 'Missing or invalid message')

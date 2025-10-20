@@ -11,7 +11,8 @@ import {
   sendSuccess,
   validateEnvVars,
   checkRateLimit,
-  getClientIP
+  getClientIP,
+  parseJsonBody
 } from './_utils.js'
 
 export default async function handler(req, res) {
@@ -33,8 +34,9 @@ export default async function handler(req, res) {
       return sendError(res, 429, 'Too many requests. Please try again later.')
     }
 
-    // Validate request body
-    const { keywords, maxResults = 3 } = req.body
+    // Validate request body (parse if needed)
+    const body = await parseJsonBody(req)
+    const { keywords, maxResults = 3 } = body
 
     if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
       return sendError(res, 400, 'Missing or invalid keywords array')
