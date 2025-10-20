@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       expert: 'Expert'
     }
     const finalLevel = levelMap[normalizedLevel] || level
-    if (!validLevels.includes(finalLevel)) {
+    if (!validLevels.includes(normalizedLevel)) {
       return sendError(res, 400, 'Invalid level. Must be one of: ' + validLevels.join(', '))
     }
 
