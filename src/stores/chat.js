@@ -180,7 +180,7 @@ Hãy trở thành người đồng hành tuyệt vời nhất cho học viên!`
 
       const genAI = new GoogleGenerativeAI(apiKey)
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-pro',
+        model: 'gemini-1.5-pro',
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 1024,

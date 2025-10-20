@@ -44,6 +44,17 @@ YOUTUBE_API_KEY=your_youtube_api_key_here
 GROQ_API_KEY=your_groq_api_key_here
 
 # ============================================
+# VITE APP CONFIGURATION (For Local Development)
+# ============================================
+# Đặt chế độ API cho frontend Vite.
+# - 'client': (Mặc định) Dùng API keys local lưu trong trình duyệt. Ứng dụng sẽ hỏi keys nếu không tìm thấy.
+# - 'production': Dùng API backend. Ứng dụng sẽ gửi request tới /api/*, vốn sẽ được proxy tới backend.
+#
+# Để test local với Vite Proxy (Option 2 trong DEVELOPMENT.md), hãy đặt giá trị này thành 'production' trong file .env.local của bạn.
+#
+VITE_API_MODE=client
+
+# ============================================
 # NODE ENVIRONMENT (Tự động set bởi Vercel)
 # ============================================
 # NODE_ENV=production

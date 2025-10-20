@@ -47,7 +47,18 @@ export default async function handler(req, res) {
     }
 
     const validLevels = ['Beginner', 'Intermediate', 'Advanced', 'Expert']
-    if (!validLevels.includes(level)) {
+    // Normalize level (accept lowercase values from client)
+    const normalizedLevel = typeof level === 'string'
+      ? level.trim().toLowerCase()
+      : ''
+    const levelMap = {
+      beginner: 'Beginner',
+      intermediate: 'Intermediate',
+      advanced: 'Advanced',
+      expert: 'Expert'
+    }
+    const finalLevel = levelMap[normalizedLevel] || level
+    if (!validLevels.includes(finalLevel)) {
       return sendError(res, 400, 'Invalid level. Must be one of: ' + validLevels.join(', '))
     }
 
@@ -64,7 +75,8 @@ export default async function handler(req, res) {
 
     // Initialize Gemini AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    // Use current Gemini model naming (1.5-pro)
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
 
     // Generate learning path using AI
     const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap.
@@ -90,7 +102,7 @@ Return ONLY a valid JSON object (no markdown, no code blocks) in this exact stru
 {
   "title": "Learning path title",
   "topic": "${topic}",
-  "level": "${level}",
+  "level": "${finalLevel}",
   "totalWeeks": ${durationNum},
   "hoursPerWeek": ${hoursNum},
   "weeks": [

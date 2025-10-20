@@ -84,8 +84,9 @@ export default async function handler(req, res) {
  */
 async function chatWithGemini(message, systemContext, conversationHistory = []) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  // Use current Gemini model naming
   const model = genAI.getGenerativeModel({ 
-    model: 'gemini-pro',
+    model: 'gemini-1.5-pro',
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 1024,

@@ -20,7 +20,7 @@ const quickActions = [
 ]
 
 // Treat backend mode as available even without local keys
-import { getActiveMode, apiRequest } from '../config/api'
+import { getActiveMode, API_BASE_URL } from '../config/api'
 // Check if user has at least one AI API key or backend is enabled
 const hasAIKey = computed(() => {
   const mode = getActiveMode()
@@ -38,11 +38,15 @@ async function resolveProviders() {
   const mode = getActiveMode()
   if (mode === 'backend') {
     try {
-      const data = await apiRequest('/providers', {})
+      const res = await fetch(`${API_BASE_URL}/providers`, { method: 'GET' })
+      const json = await res.json().catch(() => null)
+      const data = json?.data
       const list = []
       if (data?.providers?.gemini) list.push({ id: 'gemini', name: 'Google Gemini', icon: '🤖', speed: 'Chuẩn' })
       if (data?.providers?.groq) list.push({ id: 'groq', name: 'Groq (Llama 3.3)', icon: '⚡', speed: 'Siêu nhanh' })
-      providers.value = list
+      providers.value = list.length > 0 ? list : [
+        { id: 'gemini', name: 'Google Gemini', icon: '🤖', speed: 'Chuẩn' }
+      ]
     } catch (e) {
       // Fallback: assume at least Gemini available if backend mode enabled
       providers.value = [
