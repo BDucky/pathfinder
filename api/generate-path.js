@@ -89,9 +89,9 @@ export default async function handler(req, res) {
     
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
-    // Use gemini-1.5-flash which is available in free tier
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-    console.log('Model initialized: gemini-1.5-flash')
+    // Use gemini-pro which is the stable model for v1beta API
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    console.log('Model initialized: gemini-pro')
 
     console.log('Generating learning path with AI...')
     // Generate learning path using AI

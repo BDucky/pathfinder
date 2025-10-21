@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - Pathfinder</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4CAF50;
+        }
+        .test-section.error {
+            border-left-color: #f44336;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        pre {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+        h1 { color: #4CAF50; }
+        h2 { color: #fff; margin-top: 0; }
+        .loading {
+            color: #ff9800;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Pathfinder API Diagnostic Tool</h1>
+    <p>This tool will help you see the <strong>exact error message</strong> from the backend API.</p>
+
+    <!-- Test 1: Providers -->
+    <div class="test-section" id="test1">
+        <h2>Test 1: Check API Keys Configuration</h2>
+        <button onclick="testProviders()">Run Test</button>
+        <div id="result1"></div>
+    </div>
+
+    <!-- Test 2: Generate Path -->
+    <div class="test-section" id="test2">
+        <h2>Test 2: Generate Learning Path</h2>
+        <p>This will attempt to generate a path and show the <strong>actual error message</strong>.</p>
+        <button onclick="testGeneratePath()" id="generateBtn">Run Test</button>
+        <div id="result2"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://pathfinder-eight-rosy.vercel.app/api';
+
+        async function testProviders() {
+            const resultDiv = document.getElementById('result1');
+            resultDiv.innerHTML = '<p class="loading">⏳ Checking API keys...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/providers`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const providers = data.data.providers;
+                    let html = '<p class="success">✅ API Keys Status:</p><pre>';
+                    html += `Gemini:  ${providers.gemini ? '✅ CONFIGURED' : '❌ MISSING'}\n`;
+                    html += `Groq:    ${providers.groq ? '✅ CONFIGURED' : '⚠️  MISSING (optional)'}\n`;
+                    html += `YouTube: ${providers.youtube ? '✅ CONFIGURED' : '⚠️  MISSING (optional)'}\n`;
+                    html += '</pre>';
+                    
+                    if (!providers.gemini) {
+                        html += '<p class="error">⚠️ <strong>PROBLEM:</strong> Gemini API key is NOT configured!</p>';
+                        html += '<p>Fix: Add <code>GEMINI_API_KEY</code> to Vercel Environment Variables</p>';
+                    } else {
+                        html += '<p class="success">✅ Gemini API key is configured. Ready to generate paths!</p>';
+                    }
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">❌ Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Network Error: ${error.message}</p>`;
+            }
+        }
+
+        async function testGeneratePath() {
+            const resultDiv = document.getElementById('result2');
+            const btn = document.getElementById('generateBtn');
+            
+            resultDiv.innerHTML = '<p class="loading">⏳ Calling API... (may take 5-10 seconds)</p>';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE}/generate-path`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        topic: 'Python',
+                        level: 'beginner',
+                        duration: 2,
+                        hoursPerWeek: 10
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ SUCCESS! API is working!</p>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                    `;
+                    document.getElementById('test2').classList.remove('error');
+                } else {
+                    // This is the ACTUAL error message from the backend!
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ API returned an error:</p>
+                        <pre style="color: #f44336; font-weight: bold;">${data.error}</pre>
+                        <h3>What this means:</h3>
+                        <div style="background: #3a3a3a; padding: 15px; border-radius: 4px; margin-top: 10px;">
+                            ${interpretError(data.error)}
+                        </div>
+                    `;
+                    document.getElementById('test2').classList.add('error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ Network/Fetch Error:</p>
+                    <pre>${error.message}</pre>
+                `;
+                document.getElementById('test2').classList.add('error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function interpretError(errorMsg) {
+            if (errorMsg.includes('GEMINI API KEY IS INVALID')) {
+                return `
+                    <p class="error"><strong>❌ Your Gemini API key is invalid!</strong></p>
+                    <p>Solutions:</p>
+                    <ol>
+                        <li>Generate a new key at: <a href="https://makersuite.google.com/app/apikey" target="_blank" style="color: #4CAF50;">https://makersuite.google.com/app/apikey</a></li>
+                        <li>Add it to Vercel: Settings → Environment Variables → <code>GEMINI_API_KEY</code></li>
+                        <li>Redeploy your application</li>
+                    </ol>
+                `;
+            } else if (errorMsg.includes('PERMISSION DENIED')) {
+                return `
+                    <p class="error"><strong>❌ Permission Denied - API not enabled!</strong></p>
+                    <p>Solutions:</p>
+                    <ol>
+                        <li>Go to: <a href="https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com" target="_blank" style="color: #4CAF50;">Google Cloud Console</a></li>
+                        <li>Enable the "Generative Language API"</li>
+                        <li>Wait 1-2 minutes for it to propagate</li>
+                        <li>Try again</li>
+                    </ol>
+                `;
+            } else if (errorMsg.includes('QUOTA EXCEEDED')) {
+                return `
+                    <p class="warning"><strong>⚠️ Quota Exceeded!</strong></p>
+                    <p>You've hit the free tier limit (usually 15 requests/minute or daily limit).</p>
+                    <p>Solutions:</p>
+                    <ul>
+                        <li>Wait for quota to reset (usually 1 minute or 24 hours)</li>
+                        <li>Upgrade to paid tier in Google Cloud</li>
+                        <li>Use a different API key</li>
+                    </ul>
+                `;
+            } else if (errorMsg.includes('MODEL ERROR') || errorMsg.includes('NOT_FOUND')) {
+                return `
+                    <p class="error"><strong>❌ Model not available!</strong></p>
+                    <p>The Gemini model is not available in your region or configuration.</p>
+                    <p>Error details: ${errorMsg}</p>
+                `;
+            } else if (errorMsg.includes('Missing API key')) {
+                return `
+                    <p class="error"><strong>❌ API Key is missing on Vercel!</strong></p>
+                    <p>Go to Vercel → Settings → Environment Variables and add <code>GEMINI_API_KEY</code></p>
+                `;
+            } else {
+                return `
+                    <p><strong>Detailed error message:</strong></p>
+                    <p>${errorMsg}</p>
+                    <p>Check the Vercel Function Logs for more details.</p>
+                `;
+            }
+        }
+
+        // Auto-run Test 1 on page load
+        window.addEventListener('load', () => {
+            testProviders();
+        });
+    </script>
+</body>
+</html>
