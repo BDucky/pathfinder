@@ -89,9 +89,12 @@ export default async function handler(req, res) {
     
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
-    // Use gemini-pro which is the stable model for v1beta API
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
-    console.log('Model initialized: gemini-pro')
+    // Use the full model path that works with SDK 0.21+
+    // Format: models/gemini-pro (not just gemini-pro)
+    const model = genAI.getGenerativeModel({ 
+      model: 'models/gemini-pro'
+    })
+    console.log('Model initialized: models/gemini-pro')
 
     console.log('Generating learning path with AI...')
     // Generate learning path using AI
