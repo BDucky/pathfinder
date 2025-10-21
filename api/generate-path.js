@@ -92,9 +92,9 @@ export default async function handler(req, res) {
     // Use the full model path that works with SDK 0.21+
     // Format: models/gemini-pro (not just gemini-pro)
     const model = genAI.getGenerativeModel({ 
-      model: 'models/gemini-flash-lates'
+      model: 'models/gemini-flash-latest'
     })
-    console.log('Model initialized: models/gemini-flash-lates')
+    console.log('Model initialized: models/gemini-flash-latest')
 
     console.log('Generating learning path with AI...')
     // Generate learning path using AI
