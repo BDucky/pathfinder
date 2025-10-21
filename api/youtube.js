@@ -92,6 +92,9 @@ export default async function handler(req, res) {
     console.error('Error in youtube search:', error)
     
     // Handle specific error types
+    if (error.message?.includes('Missing required environment variables')) {
+      return sendError(res, 500, 'Server configuration error: API key is missing.')
+    }
     if (error.message?.includes('API key')) {
       return sendError(res, 500, 'YouTube service configuration error')
     }

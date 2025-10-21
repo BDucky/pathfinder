@@ -19,7 +19,7 @@ export const API_MODE = hasBackendAPI ? 'backend' : 'client'
  */
 export const API_BASE_URL = isProduction 
   ? '/api'  // Production: Vercel serverless functions
-  : 'http://localhost:3000/api' // Development: Local dev server
+  : 'http://localhost:5173/api' // Development: Local dev server
 
 /**
  * Check if client has API keys stored locally

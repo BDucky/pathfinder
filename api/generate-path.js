@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       return sendError(res, 429, 'Too many requests. Please try again later.')
     }
 
-    // Validate request body (parse if needed)
+    // Parse and validate request body
     const body = await parseJsonBody(req)
     const { topic, level, duration, hoursPerWeek } = body
 
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
     // Initialize Gemini AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
     // Use current Gemini model naming (1.5-pro)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
 
     // Generate learning path using AI
     const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap.

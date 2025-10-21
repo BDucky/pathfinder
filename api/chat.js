@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       return sendError(res, 429, 'Too many requests. Please try again later.')
     }
 
-    // Validate request body (parse if needed)
+    // Parse and validate request body
     const body = await parseJsonBody(req)
     const { message, provider, systemContext, conversationHistory } = body
 

@@ -117,40 +117,48 @@ export function validateEnvVars(requiredVars) {
 
 
 /**
- * Parse JSON body for Node.js serverless functions
- * Vercel Node functions do not parse the body by default.
- * Returns the parsed object and also assigns it to req.body for convenience.
+ * Universal JSON body parser for Node.js serverless functions.
+ * Handles different environments (Vercel dev/prod) gracefully.
+ * - If middleware has already parsed `req.body` (dev), it's used.
+ * - If `req.body` is a string, it's parsed.
+ * - Otherwise, reads from the raw request stream (prod).
  */
 export async function parseJsonBody(req) {
-  // If another middleware already parsed it
-  if (req.body && typeof req.body === 'object') {
-    return req.body
+  // Case 1: Body is already available (from middleware like in Vite's dev server)
+  if (req.body) {
+    // Already parsed into an object
+    if (typeof req.body === 'object') return req.body;
+    // Is a string that needs parsing
+    if (typeof req.body === 'string') {
+      try {
+        // Handle empty string body
+        return JSON.parse(req.body || '{}');
+      } catch (err) {
+        throw new Error('Invalid JSON body');
+      }
+    }
+    // Some other unexpected type, return empty
+    return {};
   }
 
-  // Only attempt to parse for methods that commonly include a body
-  const methodHasBody = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
-  if (!methodHasBody) return {}
+  // Case 2: Body needs to be read from stream (like on Vercel production)
+  const methodHasBody = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+  if (!methodHasBody) return {};
 
-  let raw = ''
+  let raw = '';
   await new Promise((resolve, reject) => {
     req.on('data', chunk => {
-      raw += chunk
-    })
-    req.on('end', resolve)
-    req.on('error', reject)
-  })
-
-  if (!raw) {
-    req.body = {}
-    return req.body
-  }
-
+      raw += chunk;
+    });
+    req.on('end', resolve);
+    req.on('error', reject);
+  });
+  
   try {
-    const parsed = JSON.parse(raw)
-    req.body = parsed
-    return parsed
+    // Handle empty raw body
+    return JSON.parse(raw || '{}');
   } catch (err) {
-    throw new Error('Invalid JSON body')
+    throw new Error('Invalid JSON body');
   }
 }
 
