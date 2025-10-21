@@ -90,7 +90,7 @@ async function chatWithGemini(message, systemContext, conversationHistory = []) 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   // Use full model path format: models/gemini-pro
   const model = genAI.getGenerativeModel({ 
-    model: 'models/gemini-pro',
+    model: 'models/gemini-2.5-flash',
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 1024,
