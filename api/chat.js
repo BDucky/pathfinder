@@ -36,6 +36,8 @@ export default async function handler(req, res) {
     // Parse and validate request body
     const body = await parseJsonBody(req)
     const { message, provider, systemContext, conversationHistory } = body
+    
+    console.log('Chat request received:', { provider, messageLength: message?.length })
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return sendError(res, 400, 'Missing or invalid message')

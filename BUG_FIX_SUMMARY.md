@@ -186,6 +186,22 @@ curl -X POST http://localhost:5173/api/chat \
 
 **Date Fixed:** October 21, 2025  
 **Files Modified:** 
-- `api/generate-path.js`
-- `api/chat.js`
+- `api/generate-path.js` - Added body parsing + improved error logging
+- `api/chat.js` - Added body parsing + logging
+
+---
+
+## ⚠️ Still Getting 500 Error?
+
+If you're still getting 500 errors after deploying the body parsing fix, the issue is likely:
+
+### **Missing Environment Variables on Vercel!**
+
+The code now properly parses the request body, but if `GEMINI_API_KEY` is not configured on Vercel, you'll still get a 500 error.
+
+**See `DEBUGGING_GUIDE.md` for complete step-by-step instructions on:**
+- How to check Vercel logs
+- How to add environment variables
+- How to test your API
+- Common issues and solutions
 

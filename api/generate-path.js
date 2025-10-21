@@ -27,7 +27,12 @@ export default async function handler(req, res) {
 
   try {
     // Validate environment variables
-    validateEnvVars(['GEMINI_API_KEY'])
+    try {
+      validateEnvVars(['GEMINI_API_KEY'])
+    } catch (envError) {
+      console.error('Environment variable validation failed:', envError.message)
+      return sendError(res, 500, 'Server configuration error: Missing API key. Please contact administrator.')
+    }
 
     // Rate limiting: 10 requests per minute per IP
     const clientIP = getClientIP(req)
@@ -38,6 +43,8 @@ export default async function handler(req, res) {
     // Parse and validate request body
     const body = await parseJsonBody(req)
     const { topic, level, duration, hoursPerWeek } = body
+    
+    console.log('Request received:', { topic, level, duration, hoursPerWeek })
 
     if (!topic || !level || !duration || !hoursPerWeek) {
       return sendError(res, 400, 'Missing required fields: topic, level, duration, hoursPerWeek')
@@ -76,10 +83,12 @@ export default async function handler(req, res) {
     }
 
     // Initialize Gemini AI
+    console.log('Initializing Gemini AI...')
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
     // Use current Gemini model naming (1.5-pro)
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
 
+    console.log('Generating learning path with AI...')
     // Generate learning path using AI
     const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap.
 
@@ -123,6 +132,7 @@ Return ONLY a valid JSON object (no markdown, no code blocks) in this exact stru
     const result = await model.generateContent(prompt)
     const response = await result.response
     let text = response.text()
+    console.log('AI response received, length:', text.length)
 
     // Clean up response - remove markdown code blocks if present
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -131,12 +141,15 @@ Return ONLY a valid JSON object (no markdown, no code blocks) in this exact stru
     let pathStructure
     try {
       pathStructure = JSON.parse(text)
+      console.log('Successfully parsed AI response')
     } catch (parseError) {
-      console.error('Failed to parse AI response:', text)
+      console.error('Failed to parse AI response:', parseError.message)
+      console.error('AI response preview:', text.substring(0, 500))
       return sendError(res, 500, 'AI returned invalid format. Please try again.')
     }
 
     // Return successful response
+    console.log('Sending success response')
     return sendSuccess(res, pathStructure)
 
   } catch (error) {
