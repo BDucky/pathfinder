@@ -84,30 +84,14 @@ export default async function handler(req, res) {
 
     // Initialize Gemini AI
     console.log('Initializing Gemini AI...')
+    console.log('API Key present:', !!process.env.GEMINI_API_KEY)
+    console.log('API Key length:', process.env.GEMINI_API_KEY?.length)
+    
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
-    // Try multiple model names for better compatibility
-    const modelNames = ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash']
-    let model, modelName
-
-    for (const name of modelNames) {
-      try {
-        console.log(`Trying model: ${name}`)
-        model = genAI.getGenerativeModel({ model: name })
-        modelName = name
-        break
-      } catch (modelError) {
-        console.log(`Model ${name} failed:`, modelError.message)
-        continue
-      }
-    }
-
-    if (!model) {
-      console.error('No compatible Gemini model found')
-      return sendError(res, 500, 'No compatible AI model available. Please contact support.')
-    }
-
-    console.log(`Using model: ${modelName}`)
+    // Use gemini-1.5-flash which is available in free tier
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    console.log('Model initialized: gemini-1.5-flash')
 
     console.log('Generating learning path with AI...')
     // Generate learning path using AI
@@ -163,33 +147,30 @@ Return ONLY a valid JSON object (no markdown, no code blocks) in this exact stru
       text = response.text()
       console.log('AI response received, length:', text.length)
     } catch (aiError) {
-      console.error('Gemini API error:', aiError)
-      console.error('Error details:', {
-        message: aiError.message,
-        status: aiError.status,
-        code: aiError.code,
-        details: aiError.details
-      })
+      console.error('====== GEMINI API ERROR ======')
+      console.error('Full error object:', JSON.stringify(aiError, null, 2))
+      console.error('Error message:', aiError.message)
+      console.error('Error stack:', aiError.stack)
+      console.error('Error status:', aiError.status)
+      console.error('Error statusText:', aiError.statusText)
+      console.error('==============================')
 
-      // Handle specific Gemini API errors
-      if (aiError.message?.includes('API_KEY') || aiError.message?.includes('API key')) {
-        return sendError(res, 500, 'Invalid API key. Please check your Gemini API key configuration.')
+      // Handle specific Gemini API errors and create a user-friendly message
+      let clientErrorMessage = aiError.message || 'An unexpected AI error occurred';
+
+      if (aiError.message?.includes('API key not valid') || aiError.message?.includes('API_KEY_INVALID')) {
+        clientErrorMessage = 'GEMINI API KEY IS INVALID: ' + aiError.message
+      } else if (aiError.message?.includes('permission') || aiError.message?.includes('PERMISSION_DENIED')) {
+        clientErrorMessage = 'PERMISSION DENIED: Enable Generative Language API at https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com'
+      } else if (aiError.message?.includes('quota') || aiError.message?.includes('RESOURCE_EXHAUSTED')) {
+        clientErrorMessage = 'QUOTA EXCEEDED: ' + aiError.message
+      } else if (aiError.message?.includes('model') || aiError.message?.includes('NOT_FOUND')) {
+        clientErrorMessage = 'MODEL ERROR: ' + aiError.message
+      } else if (aiError.statusText) {
+        clientErrorMessage = `API Error (${aiError.status}): ${aiError.statusText}`
       }
 
-      if (aiError.message?.includes('QUOTA') || aiError.message?.includes('quota')) {
-        return sendError(res, 503, 'Gemini API quota exceeded. Please try again later.')
-      }
-
-      if (aiError.message?.includes('PERMISSION_DENIED') || aiError.message?.includes('permission')) {
-        return sendError(res, 500, 'Gemini API access denied. Please check your API key permissions.')
-      }
-
-      if (aiError.message?.includes('MODEL_NOT_FOUND') || aiError.message?.includes('model')) {
-        return sendError(res, 500, 'AI model not available. Please try again later.')
-      }
-
-      console.error('Unexpected AI error:', aiError)
-      return sendError(res, 500, 'Failed to generate learning path. Please try again.')
+      return sendError(res, 500, clientErrorMessage)
     }
 
     // Clean up response - remove markdown code blocks if present
