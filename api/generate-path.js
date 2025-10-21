@@ -85,8 +85,29 @@ export default async function handler(req, res) {
     // Initialize Gemini AI
     console.log('Initializing Gemini AI...')
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-    // Use current Gemini model naming (1.5-pro)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+
+    // Try multiple model names for better compatibility
+    const modelNames = ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash']
+    let model, modelName
+
+    for (const name of modelNames) {
+      try {
+        console.log(`Trying model: ${name}`)
+        model = genAI.getGenerativeModel({ model: name })
+        modelName = name
+        break
+      } catch (modelError) {
+        console.log(`Model ${name} failed:`, modelError.message)
+        continue
+      }
+    }
+
+    if (!model) {
+      console.error('No compatible Gemini model found')
+      return sendError(res, 500, 'No compatible AI model available. Please contact support.')
+    }
+
+    console.log(`Using model: ${modelName}`)
 
     console.log('Generating learning path with AI...')
     // Generate learning path using AI
@@ -129,10 +150,47 @@ Return ONLY a valid JSON object (no markdown, no code blocks) in this exact stru
   ]
 }`
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    let text = response.text()
-    console.log('AI response received, length:', text.length)
+    let result, response, text
+
+    try {
+      console.log('Calling Gemini API with prompt length:', prompt.length)
+      result = await model.generateContent(prompt)
+      console.log('Gemini API call completed')
+
+      response = await result.response
+      console.log('Response received from Gemini')
+
+      text = response.text()
+      console.log('AI response received, length:', text.length)
+    } catch (aiError) {
+      console.error('Gemini API error:', aiError)
+      console.error('Error details:', {
+        message: aiError.message,
+        status: aiError.status,
+        code: aiError.code,
+        details: aiError.details
+      })
+
+      // Handle specific Gemini API errors
+      if (aiError.message?.includes('API_KEY') || aiError.message?.includes('API key')) {
+        return sendError(res, 500, 'Invalid API key. Please check your Gemini API key configuration.')
+      }
+
+      if (aiError.message?.includes('QUOTA') || aiError.message?.includes('quota')) {
+        return sendError(res, 503, 'Gemini API quota exceeded. Please try again later.')
+      }
+
+      if (aiError.message?.includes('PERMISSION_DENIED') || aiError.message?.includes('permission')) {
+        return sendError(res, 500, 'Gemini API access denied. Please check your API key permissions.')
+      }
+
+      if (aiError.message?.includes('MODEL_NOT_FOUND') || aiError.message?.includes('model')) {
+        return sendError(res, 500, 'AI model not available. Please try again later.')
+      }
+
+      console.error('Unexpected AI error:', aiError)
+      return sendError(res, 500, 'Failed to generate learning path. Please try again.')
+    }
 
     // Clean up response - remove markdown code blocks if present
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
