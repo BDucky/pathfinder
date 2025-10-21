@@ -96,7 +96,7 @@ export const usePathStore = defineStore('path', {
      */
     async generatePathStructure(apiKey, topic, level, duration, hoursPerWeek) {
       const genAI = new GoogleGenerativeAI(apiKey)
-      const model = genAI.getGenerativeModel({ model: 'models/gemini-2.5-flash' })
+      const model = genAI.getGenerativeModel({ model: 'models/gemini-flash-lates' })
 
       const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap.
 
