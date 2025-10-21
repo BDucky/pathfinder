@@ -90,34 +90,21 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
     // Use the full model path that works with SDK 0.21+
-    // Format: models/gemini-pro (not just gemini-pro)
+    // Using gemini-flash-latest for faster responses (ideal for time-limited functions)
     const model = genAI.getGenerativeModel({ 
-      model: 'models/gemini-flash-latest'
+      model: 'models/gemini-flash-latest',
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 4096, // Limit output for faster generation
+      }
     })
     console.log('Model initialized: models/gemini-flash-latest')
 
     console.log('Generating learning path with AI...')
-    // Generate learning path using AI
-    const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap.
+    // Optimized prompt for faster generation
+    const prompt = `Create a ${durationNum}-week learning path for "${topic}" at ${level} level (${hoursNum} hours/week).
 
-Input:
-- Topic: ${topic}
-- Current Level: ${level}
-- Duration: ${durationNum} weeks
-- Hours per week: ${hoursNum}
-
-Create a structured learning path with the following requirements:
-1. Break down the learning journey into ${durationNum} weeks
-2. Each week should have:
-   - Week number and title
-   - Learning objectives (2-4 specific goals)
-   - Topics to cover (3-5 subtopics)
-   - Estimated hours needed
-   - Search keywords for finding relevant videos (2-3 keywords optimized for YouTube search)
-3. Progression should be logical and appropriate for the skill level
-4. Include practical projects or exercises
-
-Return ONLY a valid JSON object (no markdown, no code blocks) in this exact structure:
+Return ONLY valid JSON (no markdown, no explanations) with this structure:
 {
   "title": "Learning path title",
   "topic": "${topic}",
