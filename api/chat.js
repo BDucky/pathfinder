@@ -2,10 +2,9 @@
  * Vercel Serverless Function: AI Chat
  * Endpoint: POST /api/chat
  * 
- * Supports both Google Gemini and Groq AI for chat functionality
+ * Uses Groq AI for fast chat functionality.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import Groq from 'groq-sdk'
 import {
   handleCors,
@@ -27,7 +26,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Rate limiting: 20 requests per minute per IP (chat needs more quota)
+    // Validate that Groq API key is configured
+    try {
+      validateEnvVars(['GROQ_API_KEY'])
+    } catch (envError) {
+      console.error('Environment variable validation failed:', envError.message)
+      return sendError(res, 500, 'Server configuration error: AI provider is not configured.')
+    }
+
+    // Rate limiting: 20 requests per minute per IP
     const clientIP = getClientIP(req)
     if (!checkRateLimit(clientIP, 20, 60000)) {
       return sendError(res, 429, 'Too many requests. Please try again later.')
@@ -35,35 +42,15 @@ export default async function handler(req, res) {
 
     // Parse and validate request body
     const body = await parseJsonBody(req)
-    const { message, provider, systemContext, conversationHistory } = body
+    const { message, systemContext, conversationHistory } = body
     
-    console.log('Chat request received:', { provider, messageLength: message?.length })
+    console.log('Groq Chat request received:', { messageLength: message?.length })
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return sendError(res, 400, 'Missing or invalid message')
     }
 
-    if (!provider || !['gemini', 'groq'].includes(provider)) {
-      return sendError(res, 400, 'Invalid provider. Must be "gemini" or "groq"')
-    }
-
-    // Check if required API key exists for the selected provider
-    if (provider === 'gemini' && !process.env.GEMINI_API_KEY) {
-      return sendError(res, 503, 'Gemini AI is not configured on this server')
-    }
-
-    if (provider === 'groq' && !process.env.GROQ_API_KEY) {
-      return sendError(res, 503, 'Groq AI is not configured on this server')
-    }
-
-    let aiResponse
-
-    // Route to appropriate AI provider
-    if (provider === 'gemini') {
-      aiResponse = await chatWithGemini(message, systemContext, conversationHistory)
-    } else if (provider === 'groq') {
-      aiResponse = await chatWithGroq(message, systemContext, conversationHistory)
-    }
+    const aiResponse = await chatWithGroq(message, systemContext, conversationHistory)
 
     return sendSuccess(res, { response: aiResponse })
 
@@ -90,63 +77,6 @@ export default async function handler(req, res) {
 
     // Return the actual error message for debugging
     return sendError(res, 500, error.message || 'An error occurred while processing your message')
-  }
-}
-
-/**
- * Chat with Google Gemini AI
- */
-async function chatWithGemini(message, systemContext, conversationHistory = []) {
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-    // Use full model path format: models/gemini-pro
-    const model = genAI.getGenerativeModel({ 
-      model: 'models/gemini-2.5-pro',
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1024,
-      }
-    })
-
-    // Build conversation history for Gemini
-    const history = conversationHistory
-      .slice(-10) // Keep last 10 messages to avoid token limits
-      .map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
-      }))
-
-    console.log('Starting Gemini chat with history length:', history.length)
-
-    // Start chat with history
-    const chat = model.startChat({
-      history,
-      generationConfig: {
-        maxOutputTokens: 1024,
-      },
-    })
-
-    // Add system context to the message
-    const contextualMessage = systemContext 
-      ? `${systemContext}\n\n---\n\nUser: ${message}`
-      : message
-
-    console.log('Sending message to Gemini...')
-    const result = await chat.sendMessage(contextualMessage)
-    const response = await result.response
-    const text = response.text()
-    
-    console.log('Gemini response received, length:', text?.length)
-    
-    if (!text) {
-      throw new Error('Empty response from Gemini AI')
-    }
-    
-    return text
-  } catch (error) {
-    console.error('Error in chatWithGemini:', error)
-    // Re-throw with more context
-    throw new Error(`Gemini AI Error: ${error.message}`)
   }
 }
 
@@ -187,7 +117,7 @@ async function chatWithGroq(message, systemContext, conversationHistory = []) {
   // Call Groq API
   const chatCompletion = await groq.chat.completions.create({
     messages,
-    model: 'llama-3.3-70b-versatile',
+    model: 'llama3-8b-8192', // Using a smaller, faster model for chat
     temperature: 0.7,
     max_tokens: 1024,
     top_p: 1,

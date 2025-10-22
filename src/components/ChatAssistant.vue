@@ -63,16 +63,19 @@ async function resolveProviders() {
 
 const availableProviders = computed(() => providers.value)
 
-// Current provider info
-const currentProvider = computed(() => {
-  return availableProviders.value.find(p => p.id === chatStore.aiProvider) || availableProviders.value[0]
-})
+// Current provider info - Hardcoded to Groq
+const currentProvider = {
+  id: 'groq',
+  name: 'Groq (Llama 3.3)',
+  icon: '⚡',
+  speed: 'Siêu nhanh'
+}
 
 onMounted(() => {
   // Load saved messages and preferences
   chatStore.loadMessages()
-  chatStore.loadProviderPreference()
-  resolveProviders()
+  // Force provider to groq on load
+  chatStore.switchProvider('groq')
 
   // Initialize chat with learning path context if available
   if (pathStore.learningPath && chatStore.messages.length === 0) {
@@ -114,7 +117,8 @@ const sendMessage = async () => {
   if (!message || chatStore.isTyping) return
 
   userInput.value = ''
-  await chatStore.sendMessage(message)
+  // Ensure provider is always groq
+  await chatStore.sendMessage(message, 'groq')
 }
 
 const useQuickAction = (action) => {
@@ -125,10 +129,6 @@ const useQuickAction = (action) => {
   nextTick(() => {
     document.getElementById('chat-input')?.focus()
   })
-}
-
-const switchProvider = (providerId) => {
-  chatStore.switchProvider(providerId)
 }
 
 const clearChat = () => {
@@ -197,7 +197,7 @@ const handleKeydown = (e) => {
           <div>
             <h3 class="font-semibold text-sm">AI Learning Assistant</h3>
             <p v-if="currentProvider" class="text-xs text-primary-100">
-              {{ currentProvider.icon }} {{ currentProvider.name }}
+              ⚡️ Powered by Groq
             </p>
           </div>
         </div>
@@ -311,22 +311,7 @@ const handleKeydown = (e) => {
 
         <!-- Input Area -->
         <div v-if="hasAIKey" class="p-4 bg-white border-t border-gray-200 rounded-b-2xl">
-          <!-- AI Provider Selector -->
-          <div v-if="availableProviders.length > 1" class="flex gap-2 mb-3">
-            <button
-              v-for="provider in availableProviders"
-              :key="provider.id"
-              @click="switchProvider(provider.id)"
-              class="flex-1 text-xs px-2 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1"
-              :class="chatStore.aiProvider === provider.id
-                ? 'bg-primary-100 text-primary-700 border-2 border-primary-600 font-semibold'
-                : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'"
-            >
-              <span>{{ provider.icon }}</span>
-              <span>{{ provider.name }}</span>
-              <span class="text-[10px] opacity-70">({{ provider.speed }})</span>
-            </button>
-          </div>
+          <!-- AI Provider Selector - REMOVED -->
 
           <!-- Input field -->
           <div class="flex gap-2">

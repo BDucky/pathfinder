@@ -89,121 +89,124 @@ export default async function handler(req, res) {
     
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
-    // Use the full model path that works with SDK 0.21+
-    // Using gemini-2.5-pro for faster responses (ideal for time-limited functions)
+    // Using the latest stable and powerful model
     const model = genAI.getGenerativeModel({ 
-      model: 'models/gemini-2.5-pro',
+      model: 'gemini-1.5-pro',
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 4096, // Limit output for faster generation
       }
     })
-    console.log('Model initialized: models/gemini-2.5-pro')
+    console.log('Model initialized: gemini-1.5-pro')
 
-    console.log('Generating learning path with AI...')
-    // Optimized prompt for faster generation
-    const prompt = `Create a ${durationNum}-week learning path for "${topic}" at ${level} level (${hoursNum} hours/week).
+    console.log('Generating learning path with AI (segmented)...')
 
-Return ONLY valid JSON (no markdown, no explanations) with this structure:
-{
-  "title": "Learning path title",
-  "topic": "${topic}",
-  "level": "${finalLevel}",
-  "totalWeeks": ${durationNum},
-  "hoursPerWeek": ${hoursNum},
-  "weeks": [
-    {
-      "weekNumber": 1,
-      "title": "Week title",
-      "objectives": ["objective 1", "objective 2"],
-      "topics": ["topic 1", "topic 2", "topic 3"],
-      "estimatedHours": 10,
-      "searchKeywords": ["keyword1 tutorial", "keyword2 beginner"],
-      "exercises": "Practical exercise description"
+    // Helpers: JSON cleanup and parsing
+    function cleanToJson(text) {
+      if (!text || typeof text !== 'string') return ''
+      let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      // Prefer object, else array
+      const objStart = cleaned.indexOf('{')
+      const objEnd = cleaned.lastIndexOf('}')
+      const arrStart = cleaned.indexOf('[')
+      const arrEnd = cleaned.lastIndexOf(']')
+      if (objStart !== -1 && objEnd !== -1 && objEnd > objStart) {
+        return cleaned.substring(objStart, objEnd + 1)
+      }
+      if (arrStart !== -1 && arrEnd !== -1 && arrEnd > arrStart) {
+        return cleaned.substring(arrStart, arrEnd + 1)
+      }
+      return cleaned
     }
-  ]
-}`
 
-    let result, response, text
+    async function generateWeeksRange(startWeek, endWeek) {
+      const segmentPrompt = `You are an expert learning path designer.
 
-    try {
-      console.log('Calling Gemini API with prompt length:', prompt.length)
-      result = await model.generateContent(prompt)
-      console.log('Gemini API call completed')
+Create ONLY weeks ${startWeek}-${endWeek} for the learning path:
+- Topic: ${topic}
+- Level: ${finalLevel}
+- Hours per week: ${hoursNum}
 
-      response = await result.response
-      console.log('Response received from Gemini')
+Return STRICTLY a JSON array (no markdown, no comments, no prose) of week objects with this exact schema:
+[
+  {
+    "weekNumber": ${startWeek},
+    "title": "Week title (<= 60 chars)",
+    "objectives": ["objective 1", "objective 2"],
+    "topics": ["topic 1", "topic 2", "topic 3"],
+    "estimatedHours": 8,
+    "searchKeywords": ["keyword1 tutorial", "keyword2 beginner"],
+    "exercises": "Exercise (<= 120 chars)"
+  }
+]
 
-      text = response.text()
-      console.log('AI response received, length:', text.length)
-    } catch (aiError) {
-      console.error('====== GEMINI API ERROR ======')
-      console.error('Full error object:', JSON.stringify(aiError, null, 2))
-      console.error('Error message:', aiError.message)
-      console.error('Error stack:', aiError.stack)
-      console.error('Error status:', aiError.status)
-      console.error('Error statusText:', aiError.statusText)
-      console.error('==============================')
+Constraints:
+- Keep strings concise
+- Ensure weekNumber values are correct and sequential
+- Array lengths: objectives 2, topics 3, searchKeywords 2
+- Do NOT include any text outside the JSON array.`
 
-      // Handle specific Gemini API errors and create a user-friendly message
-      let clientErrorMessage = aiError.message || 'An unexpected AI error occurred';
-
-      if (aiError.message?.includes('API key not valid') || aiError.message?.includes('API_KEY_INVALID')) {
-        clientErrorMessage = 'GEMINI API KEY IS INVALID: ' + aiError.message
-      } else if (aiError.message?.includes('permission') || aiError.message?.includes('PERMISSION_DENIED')) {
-        clientErrorMessage = 'PERMISSION DENIED: Enable Generative Language API at https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com'
-      } else if (aiError.message?.includes('quota') || aiError.message?.includes('RESOURCE_EXHAUSTED')) {
-        clientErrorMessage = 'QUOTA EXCEEDED: ' + aiError.message
-      } else if (aiError.message?.includes('model') || aiError.message?.includes('NOT_FOUND')) {
-        clientErrorMessage = 'MODEL ERROR: ' + aiError.message
-      } else if (aiError.statusText) {
-        clientErrorMessage = `API Error (${aiError.status}): ${aiError.statusText}`
+      let segText
+      try {
+        const segResult = await model.generateContent(segmentPrompt)
+        const segResponse = await segResult.response
+        segText = cleanToJson(segResponse.text())
+      } catch (e) {
+        console.error(`Segment ${startWeek}-${endWeek} generation failed:`, e.message)
+        throw new Error(`Failed to generate weeks ${startWeek}-${endWeek}: ${e.message}`)
       }
 
-      return sendError(res, 500, clientErrorMessage)
+      try {
+        const weeks = JSON.parse(segText)
+        if (!Array.isArray(weeks)) throw new Error('Expected JSON array')
+        return weeks
+      } catch (e) {
+        console.error(`Parse error for weeks ${startWeek}-${endWeek}:`, e.message)
+        console.error('Segment text preview:', segText?.slice(0, 400))
+        throw new Error(`Invalid JSON for weeks ${startWeek}-${endWeek}`)
+      }
     }
 
-    // Clean up response - remove markdown code blocks if present
-    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    // Build title
+    const title = `${finalLevel} ${topic} Learning Path`
 
-    // Try to extract JSON if there's extra text
-    let jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (jsonMatch) {
-      text = jsonMatch[0]
+    // Generate weeks in segments to avoid token/length issues
+    const segmentSize = 8
+    const allWeeks = []
+    for (let start = 1; start <= durationNum; start += segmentSize) {
+      const end = Math.min(durationNum, start + segmentSize - 1)
+      const segWeeks = await generateWeeksRange(start, end)
+      allWeeks.push(...segWeeks)
     }
 
-    // Parse JSON
-    let pathStructure
-    try {
-      pathStructure = JSON.parse(text)
-      console.log('Successfully parsed AI response')
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError.message)
-      console.error('AI response text:', text)
-      console.error('Text length:', text.length)
-      console.error('First 500 chars:', text.substring(0, 500))
-      console.error('Last 500 chars:', text.substring(text.length - 500))
-      
-      return sendError(res, 500, `AI returned invalid format. Parse error: ${parseError.message}. Please try again.`)
+    // Normalize and validate weeks
+    const normalizedWeeks = allWeeks
+      .filter(Boolean)
+      .map((w, idx) => ({
+        weekNumber: Number(w.weekNumber ?? idx + 1),
+        title: String(w.title || `Week ${idx + 1}`),
+        objectives: Array.isArray(w.objectives) ? w.objectives.slice(0, 3) : [],
+        topics: Array.isArray(w.topics) ? w.topics.slice(0, 5) : [],
+        estimatedHours: Number(w.estimatedHours || Math.round(hoursNum)),
+        searchKeywords: Array.isArray(w.searchKeywords) ? w.searchKeywords.slice(0, 3) : [],
+        exercises: String(w.exercises || 'Practice the covered topics')
+      }))
+      .slice(0, durationNum)
+
+    if (normalizedWeeks.length !== durationNum) {
+      console.error('Generated weeks count mismatch:', { expected: durationNum, got: normalizedWeeks.length })
+      return sendError(res, 500, 'Failed to generate complete learning path. Please try again.')
     }
 
-    // Validate the structure
-    if (!pathStructure.title || !pathStructure.weeks || !Array.isArray(pathStructure.weeks)) {
-      console.error('Invalid path structure:', {
-        hasTitle: !!pathStructure.title,
-        hasWeeks: !!pathStructure.weeks,
-        weeksIsArray: Array.isArray(pathStructure.weeks),
-        structure: pathStructure
-      })
-      return sendError(res, 500, 'AI returned incomplete structure. Missing required fields.')
+    const pathStructure = {
+      title,
+      topic,
+      level: finalLevel,
+      totalWeeks: durationNum,
+      hoursPerWeek: hoursNum,
+      weeks: normalizedWeeks
     }
 
-    if (pathStructure.weeks.length === 0) {
-      console.error('Path has no weeks')
-      return sendError(res, 500, 'AI returned empty learning path. Please try again.')
-    }
-
-    // Return successful response
     console.log('Sending success response')
     return sendSuccess(res, pathStructure)
 
