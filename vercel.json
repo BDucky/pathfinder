@@ -8,6 +8,7 @@
       "memory": 1024,
       "maxDuration": 120
     }
-  }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
 
