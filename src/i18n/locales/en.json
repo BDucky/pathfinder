@@ -1,0 +1,148 @@
+{
+  "app": {
+    "title": "Pathfinder",
+    "subtitle": "AI-Powered Learning Path Generator",
+    "footer": "Made with ❤️ using Vue 3, Vite, Tailwind CSS & Google Gemini AI"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "create": "Create Path",
+    "settings": "API Settings",
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "dashboard": {
+    "title": "My Learning Paths",
+    "subtitle": "Manage and track your learning journey",
+    "empty": "No learning paths yet",
+    "emptyDesc": "Create your first learning path to get started!",
+    "createNew": "Create New Path",
+    "total": "Total Paths",
+    "completed": "Completed",
+    "inProgress": "In Progress",
+    "filter": {
+      "all": "All",
+      "active": "Active",
+      "completed": "Completed"
+    },
+    "card": {
+      "created": "Created",
+      "progress": "Progress",
+      "weeks": "weeks",
+      "hoursPerWeek": "hours/week",
+      "viewDetails": "View Details",
+      "delete": "Delete",
+      "confirmDelete": "Are you sure you want to delete this learning path?"
+    }
+  },
+  "form": {
+    "title": "Create Learning Path",
+    "description": "Tell us what you want to learn",
+    "topic": {
+      "label": "What do you want to learn?",
+      "placeholder": "e.g., Python, Web Development, Machine Learning..."
+    },
+    "level": {
+      "label": "Current Level",
+      "beginner": "Beginner - Starting from scratch",
+      "beginnerDesc": "No prior knowledge",
+      "intermediate": "Intermediate - Basic knowledge",
+      "intermediateDesc": "Understand basic concepts",
+      "advanced": "Advanced - Want to enhance skills",
+      "advancedDesc": "Have practical experience",
+      "expert": "Expert - Deep expertise",
+      "expertDesc": "Want to become an expert"
+    },
+    "duration": {
+      "label": "Duration (weeks)",
+      "min": "1 week minimum",
+      "max": "52 weeks maximum"
+    },
+    "hoursPerWeek": {
+      "label": "Hours per week",
+      "min": "1 hour minimum",
+      "max": "168 hours maximum"
+    },
+    "submit": "Generate Learning Path",
+    "generating": "Generating...",
+    "cancel": "Cancel"
+  },
+  "path": {
+    "title": "Your Learning Path",
+    "noPath": "No learning path generated yet",
+    "noPathDesc": "Fill out the form to generate your personalized learning path",
+    "generating": "Generating your learning path...",
+    "step": "Step",
+    "week": "Week",
+    "objectives": "Objectives",
+    "topics": "Topics",
+    "hours": "hours",
+    "exercises": "Exercises",
+    "resources": "Resources",
+    "videos": "Related Videos",
+    "noVideos": "No videos found",
+    "watchOn": "Watch on YouTube",
+    "save": "Save Path",
+    "saved": "Saved!",
+    "export": "Export as PDF",
+    "share": "Share"
+  },
+  "detail": {
+    "backToDashboard": "Back to Dashboard",
+    "pathInfo": "Path Information",
+    "topic": "Topic",
+    "level": "Level",
+    "duration": "Duration",
+    "hoursPerWeek": "Hours/Week",
+    "createdAt": "Created",
+    "progress": "Progress",
+    "weeklyPlan": "Weekly Plan",
+    "markAsComplete": "Mark as Complete",
+    "markAsIncomplete": "Mark as Incomplete",
+    "editPath": "Edit Path",
+    "deletePath": "Delete Path"
+  },
+  "chat": {
+    "title": "AI Assistant",
+    "placeholder": "Ask me anything about your learning path...",
+    "send": "Send",
+    "minimize": "Minimize",
+    "maximize": "Open Chat",
+    "thinking": "Thinking...",
+    "error": "Error sending message"
+  },
+  "settings": {
+    "title": "API Settings",
+    "description": "Configure your API keys for backend services",
+    "geminiKey": "Gemini API Key",
+    "geminiPlaceholder": "Enter your Google Gemini API key",
+    "youtubeKey": "YouTube API Key",
+    "youtubePlaceholder": "Enter your YouTube API key",
+    "groqKey": "Groq API Key (Optional)",
+    "groqPlaceholder": "Enter your Groq API key",
+    "mode": "API Mode",
+    "clientMode": "Client Mode - Use your own API keys",
+    "backendMode": "Backend Mode - Use server API keys",
+    "save": "Save Settings",
+    "cancel": "Cancel",
+    "saved": "Settings saved successfully!",
+    "warning": "API keys are required to use this application"
+  },
+  "theme": {
+    "light": "Light Mode",
+    "dark": "Dark Mode"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "app": {
+    "title": "Pathfinder",
+    "subtitle": "Tạo Lộ Trình Học Tập Với AI",
+    "footer": "Được tạo với ❤️ sử dụng Vue 3, Vite, Tailwind CSS & Google Gemini AI"
+  },
+  "nav": {
+    "dashboard": "Bảng Điều Khiển",
+    "create": "Tạo Lộ Trình",
+    "settings": "Cài Đặt API",
+    "theme": "Giao Diện",
+    "language": "Ngôn Ngữ"
+  },
+  "dashboard": {
+    "title": "Lộ Trình Học Tập Của Tôi",
+    "subtitle": "Quản lý và theo dõi hành trình học tập của bạn",
+    "empty": "Chưa có lộ trình học tập nào",
+    "emptyDesc": "Tạo lộ trình học tập đầu tiên để bắt đầu!",
+    "createNew": "Tạo Lộ Trình Mới",
+    "total": "Tổng Số Lộ Trình",
+    "completed": "Hoàn Thành",
+    "inProgress": "Đang Học",
+    "filter": {
+      "all": "Tất Cả",
+      "active": "Đang Hoạt Động",
+      "completed": "Đã Hoàn Thành"
+    },
+    "card": {
+      "created": "Tạo ngày",
+      "progress": "Tiến Độ",
+      "weeks": "tuần",
+      "hoursPerWeek": "giờ/tuần",
+      "viewDetails": "Xem Chi Tiết",
+      "delete": "Xóa",
+      "confirmDelete": "Bạn có chắc chắn muốn xóa lộ trình học tập này?"
+    }
+  },
+  "form": {
+    "title": "Tạo Lộ Trình Học Tập",
+    "description": "Cho chúng tôi biết bạn muốn học gì",
+    "topic": {
+      "label": "Bạn muốn học gì?",
+      "placeholder": "VD: Python, Phát Triển Web, Machine Learning..."
+    },
+    "level": {
+      "label": "Trình Độ Hiện Tại",
+      "beginner": "Beginner - Bắt đầu từ con số 0",
+      "beginnerDesc": "Chưa có kiến thức nền tảng",
+      "intermediate": "Intermediate - Đã có kiến thức cơ bản",
+      "intermediateDesc": "Hiểu các khái niệm cơ bản",
+      "advanced": "Advanced - Muốn nâng cao kỹ năng",
+      "advancedDesc": "Có kinh nghiệm thực tế",
+      "expert": "Expert - Chuyên sâu chuyên môn",
+      "expertDesc": "Muốn trở thành chuyên gia"
+    },
+    "duration": {
+      "label": "Thời lượng (tuần)",
+      "min": "Tối thiểu 1 tuần",
+      "max": "Tối đa 52 tuần"
+    },
+    "hoursPerWeek": {
+      "label": "Số giờ mỗi tuần",
+      "min": "Tối thiểu 1 giờ",
+      "max": "Tối đa 168 giờ"
+    },
+    "submit": "Tạo Lộ Trình Học Tập",
+    "generating": "Đang tạo...",
+    "cancel": "Hủy"
+  },
+  "path": {
+    "title": "Lộ Trình Học Tập",
+    "noPath": "Chưa có lộ trình học tập nào",
+    "noPathDesc": "Điền vào biểu mẫu để tạo lộ trình học tập cá nhân hóa",
+    "generating": "Đang tạo lộ trình học tập của bạn...",
+    "step": "Bước",
+    "week": "Tuần",
+    "objectives": "Mục Tiêu",
+    "topics": "Chủ Đề",
+    "hours": "giờ",
+    "exercises": "Bài Tập",
+    "resources": "Tài Nguyên",
+    "videos": "Video Liên Quan",
+    "noVideos": "Không tìm thấy video",
+    "watchOn": "Xem trên YouTube",
+    "save": "Lưu Lộ Trình",
+    "saved": "Đã lưu!",
+    "export": "Xuất PDF",
+    "share": "Chia Sẻ"
+  },
+  "detail": {
+    "backToDashboard": "Quay Lại Bảng Điều Khiển",
+    "pathInfo": "Thông Tin Lộ Trình",
+    "topic": "Chủ Đề",
+    "level": "Trình Độ",
+    "duration": "Thời Lượng",
+    "hoursPerWeek": "Giờ/Tuần",
+    "createdAt": "Ngày Tạo",
+    "progress": "Tiến Độ",
+    "weeklyPlan": "Kế Hoạch Hàng Tuần",
+    "markAsComplete": "Đánh Dấu Hoàn Thành",
+    "markAsIncomplete": "Đánh Dấu Chưa Hoàn Thành",
+    "editPath": "Chỉnh Sửa",
+    "deletePath": "Xóa Lộ Trình"
+  },
+  "chat": {
+    "title": "Trợ Lý AI",
+    "placeholder": "Hỏi tôi bất cứ điều gì về lộ trình học tập...",
+    "send": "Gửi",
+    "minimize": "Thu Nhỏ",
+    "maximize": "Mở Chat",
+    "thinking": "Đang suy nghĩ...",
+    "error": "Lỗi khi gửi tin nhắn"
+  },
+  "settings": {
+    "title": "Cài Đặt API",
+    "description": "Cấu hình API keys cho các dịch vụ backend",
+    "geminiKey": "Gemini API Key",
+    "geminiPlaceholder": "Nhập Google Gemini API key",
+    "youtubeKey": "YouTube API Key",
+    "youtubePlaceholder": "Nhập YouTube API key",
+    "groqKey": "Groq API Key (Tùy chọn)",
+    "groqPlaceholder": "Nhập Groq API key",
+    "mode": "Chế Độ API",
+    "clientMode": "Chế Độ Client - Sử dụng API keys của bạn",
+    "backendMode": "Chế Độ Backend - Sử dụng API keys của server",
+    "save": "Lưu Cài Đặt",
+    "cancel": "Hủy",
+    "saved": "Đã lưu cài đặt thành công!",
+    "warning": "Cần có API keys để sử dụng ứng dụng này"
+  },
+  "theme": {
+    "light": "Chế Độ Sáng",
+    "dark": "Chế Độ Tối"
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "success": "Thành Công",
+    "confirm": "Xác Nhận",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "edit": "Chỉnh Sửa",
+    "close": "Đóng",
+    "yes": "Có",
+    "no": "Không"
+  }
+}

@@ -5,8 +5,22 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: () => import('../views/HomeView.vue')
+      redirect: '/dashboard'
+    },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: () => import('../views/DashboardView.vue')
+    },
+    {
+      path: '/create',
+      name: 'create',
+      component: () => import('../views/CreateView.vue')
+    },
+    {
+      path: '/path/:id',
+      name: 'path-detail',
+      component: () => import('../views/PathDetailView.vue')
     }
   ]
 })
