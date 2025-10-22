@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePathsStore } from '../stores/paths'
 import { useLanguage } from '../composables/useLanguage'
+import DeleteConfirmModal from '../components/DeleteConfirmModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,6 +11,7 @@ const pathsStore = usePathsStore()
 const { t } = useLanguage()
 
 const pathId = route.params.id
+const showDeleteModal = ref(false)
 
 onMounted(() => {
   pathsStore.loadPaths()
@@ -31,11 +33,18 @@ function isWeekCompleted(weekNumber) {
   return path.value?.completedWeeks?.includes(weekNumber) || false
 }
 
+function confirmDelete() {
+  showDeleteModal.value = true
+}
+
 function deletePath() {
-  if (confirm(t('dashboard.card.confirmDelete'))) {
-    pathsStore.deletePath(pathId)
-    router.push('/dashboard')
-  }
+  pathsStore.deletePath(pathId)
+  showDeleteModal.value = false
+  router.push('/dashboard')
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false
 }
 
 function formatDate(dateString) {
@@ -69,7 +78,7 @@ function formatDate(dateString) {
             </p>
           </div>
           <button
-            @click="deletePath"
+            @click="confirmDelete"
             class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
           >
             🗑️ {{ t('detail.deletePath') }}
@@ -262,6 +271,14 @@ function formatDate(dateString) {
       </h2>
     </div>
   </div>
+
+  <!-- Delete Confirmation Modal -->
+  <DeleteConfirmModal
+    v-if="showDeleteModal"
+    :message="t('dashboard.card.confirmDelete')"
+    @confirm="deletePath"
+    @cancel="cancelDelete"
+  />
 </template>
 
 <style scoped>

@@ -73,35 +73,6 @@ function dismissError() {
 
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 relative">
-    <!-- Full Screen Loading Overlay -->
-    <div
-      v-if="pathsStore.isGenerating"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
-    >
-      <div class="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
-        <div class="text-center">
-          <div class="flex justify-center mb-4">
-            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-primary-600"></div>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
-            {{ t('form.generating') }}
-          </h3>
-          <p class="text-gray-600 dark:text-gray-400 mb-4">
-            {{ pathsStore.currentStep }}
-          </p>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-            <div
-              class="bg-primary-600 h-3 rounded-full transition-all duration-300"
-              :style="{ width: `${pathsStore.progress}%` }"
-            ></div>
-          </div>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            {{ pathsStore.progress }}%
-          </p>
-        </div>
-      </div>
-    </div>
-
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="mb-8">
@@ -234,6 +205,32 @@ function dismissError() {
               >
                 ✕
               </button>
+            </div>
+          </div>
+
+          <!-- Inline Loading Indicator -->
+          <div v-if="pathsStore.isGenerating" class="p-6 bg-primary-50 dark:bg-primary-900/20 border-l-4 border-primary-500 rounded">
+            <div class="flex items-start">
+              <div class="flex-shrink-0">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-3 border-primary-600"></div>
+              </div>
+              <div class="ml-4 flex-1">
+                <h3 class="font-semibold text-primary-800 dark:text-primary-300 mb-1">
+                  {{ t('form.generating') }}
+                </h3>
+                <p class="text-primary-700 dark:text-primary-400 text-sm mb-3">
+                  {{ pathsStore.currentStep }}
+                </p>
+                <div class="w-full bg-primary-200 dark:bg-primary-900 rounded-full h-2">
+                  <div
+                    class="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                    :style="{ width: `${pathsStore.progress}%` }"
+                  ></div>
+                </div>
+                <p class="text-xs text-primary-600 dark:text-primary-400 mt-1">
+                  {{ pathsStore.progress }}% {{ t('common.complete') }}
+                </p>
+              </div>
             </div>
           </div>
 

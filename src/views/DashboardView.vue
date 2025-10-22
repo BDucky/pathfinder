@@ -1,12 +1,16 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePathsStore } from '../stores/paths'
 import { useLanguage } from '../composables/useLanguage'
+import DeleteConfirmModal from '../components/DeleteConfirmModal.vue'
 
 const router = useRouter()
 const pathsStore = usePathsStore()
 const { t } = useLanguage()
+
+const showDeleteModal = ref(false)
+const pathToDelete = ref(null)
 
 onMounted(() => {
   pathsStore.loadPaths()
@@ -24,10 +28,22 @@ function createNewPath() {
   router.push('/create')
 }
 
-function deletePath(pathId) {
-  if (confirm(t('dashboard.card.confirmDelete'))) {
-    pathsStore.deletePath(pathId)
+function confirmDelete(pathId) {
+  pathToDelete.value = pathId
+  showDeleteModal.value = true
+}
+
+function deletePath() {
+  if (pathToDelete.value) {
+    pathsStore.deletePath(pathToDelete.value)
   }
+  showDeleteModal.value = false
+  pathToDelete.value = null
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false
+  pathToDelete.value = null
 }
 
 function formatDate(dateString) {
@@ -189,7 +205,7 @@ function getProgress(pathId) {
               {{ t('dashboard.card.viewDetails') }}
             </button>
             <button
-              @click="deletePath(path.id)"
+              @click="confirmDelete(path.id)"
               class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               🗑️
@@ -216,5 +232,13 @@ function getProgress(pathId) {
         </button>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <DeleteConfirmModal
+      v-if="showDeleteModal"
+      :message="t('dashboard.card.confirmDelete')"
+      @confirm="deletePath"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>

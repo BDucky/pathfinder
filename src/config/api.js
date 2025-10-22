@@ -89,6 +89,28 @@ export async function apiRequest(endpoint, data) {
       body: JSON.stringify(data)
     })
 
+    // Handle non-OK responses
+    if (!response.ok) {
+      // Try to parse JSON error, fallback to text
+      let errorMessage = `API error: ${response.status}`
+      
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorData.message || errorMessage
+      } catch {
+        // If JSON parsing fails, try to get text
+        try {
+          const errorText = await response.text()
+          errorMessage = errorText || errorMessage
+        } catch {
+          // Keep the default error message
+        }
+      }
+      
+      throw new Error(errorMessage)
+    }
+
+    // Parse successful response
     const result = await response.json()
 
     if (!result.success) {
