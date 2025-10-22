@@ -41,6 +41,9 @@ async function handleSubmit() {
     return
   }
 
+  // Clear any previous errors
+  pathsStore.error = null
+
   try {
     const newPath = await pathsStore.generateLearningPath({
       topic: topic.value.trim(),
@@ -53,16 +56,52 @@ async function handleSubmit() {
     router.push(`/path/${newPath.id}`)
   } catch (error) {
     console.error('Error creating path:', error)
+    // Error is already set in the store, just log it here
   }
 }
 
 function cancel() {
   router.push('/dashboard')
 }
+
+function dismissError() {
+  pathsStore.error = null
+  pathsStore.currentStep = ''
+  pathsStore.progress = 0
+}
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 relative">
+    <!-- Full Screen Loading Overlay -->
+    <div
+      v-if="pathsStore.isGenerating"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+        <div class="text-center">
+          <div class="flex justify-center mb-4">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-primary-600"></div>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            {{ t('form.generating') }}
+          </h3>
+          <p class="text-gray-600 dark:text-gray-400 mb-4">
+            {{ pathsStore.currentStep }}
+          </p>
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+            <div
+              class="bg-primary-600 h-3 rounded-full transition-all duration-300"
+              :style="{ width: `${pathsStore.progress}%` }"
+            ></div>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            {{ pathsStore.progress }}%
+          </p>
+        </div>
+      </div>
+    </div>
+
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="mb-8">
@@ -177,17 +216,24 @@ function cancel() {
             </p>
           </div>
 
-          <!-- Progress Bar (when generating) -->
-          <div v-if="pathsStore.isGenerating" class="space-y-3">
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-gray-600 dark:text-gray-400">{{ pathsStore.currentStep }}</span>
-              <span class="font-medium text-gray-900 dark:text-white">{{ pathsStore.progress }}%</span>
-            </div>
-            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div
-                class="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                :style="{ width: `${pathsStore.progress}%` }"
-              ></div>
+          <!-- Error Message -->
+          <div v-if="pathsStore.error" class="p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded">
+            <div class="flex items-start justify-between">
+              <div class="flex items-start">
+                <span class="text-2xl mr-3">❌</span>
+                <div>
+                  <h3 class="font-semibold text-red-800 dark:text-red-300">{{ t('common.error') }}</h3>
+                  <p class="text-red-700 dark:text-red-400 text-sm mt-1">
+                    {{ pathsStore.error }}
+                  </p>
+                </div>
+              </div>
+              <button
+                @click="dismissError"
+                class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              >
+                ✕
+              </button>
             </div>
           </div>
 

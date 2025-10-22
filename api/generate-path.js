@@ -90,15 +90,15 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
     // Use the full model path that works with SDK 0.21+
-    // Using gemini-flash-latest for faster responses (ideal for time-limited functions)
+    // Using gemini-2.5-flash for faster responses (ideal for time-limited functions)
     const model = genAI.getGenerativeModel({ 
-      model: 'models/gemini-flash-latest',
+      model: 'models/gemini-2.5-flash',
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 4096, // Limit output for faster generation
       }
     })
-    console.log('Model initialized: models/gemini-flash-latest')
+    console.log('Model initialized: models/gemini-2.5-flash')
 
     console.log('Generating learning path with AI...')
     // Optimized prompt for faster generation

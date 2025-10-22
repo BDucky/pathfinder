@@ -93,14 +93,36 @@ export const usePathsStore = defineStore('paths', {
 
       } catch (error) {
         console.error('Error generating learning path:', error)
-        this.error = error.message || 'An error occurred while generating the learning path.'
+        
+        // Extract user-friendly error message
+        let errorMessage = 'An error occurred while generating the learning path.'
+        
+        if (error.message) {
+          if (error.message.includes('invalid format') || error.message.includes('AI returned')) {
+            errorMessage = 'AI generated an invalid response. Please try again with different parameters.'
+          } else if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
+            errorMessage = 'Request timed out. Try reducing the number of weeks or hours per week.'
+          } else if (error.message.includes('quota') || error.message.includes('429')) {
+            errorMessage = 'API quota exceeded. Please try again later.'
+          } else if (error.message.includes('API key')) {
+            errorMessage = 'API key error. Please check your settings.'
+          } else {
+            errorMessage = error.message
+          }
+        }
+        
+        this.error = errorMessage
+        this.currentStep = `Error: ${errorMessage}`
         throw error
       } finally {
         this.isGenerating = false
-        setTimeout(() => {
-          this.currentStep = ''
-          this.progress = 0
-        }, 2000)
+        // Don't clear error immediately if there was an error
+        if (!this.error) {
+          setTimeout(() => {
+            this.currentStep = ''
+            this.progress = 0
+          }, 2000)
+        }
       }
     },
 
@@ -110,7 +132,7 @@ export const usePathsStore = defineStore('paths', {
     async generatePathStructure(apiKey, topic, level, duration, hoursPerWeek) {
       const genAI = new GoogleGenerativeAI(apiKey)
       const model = genAI.getGenerativeModel({ 
-        model: 'models/gemini-flash-latest',
+        model: 'models/gemini-2.5-flash',
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 4096,
@@ -162,8 +184,10 @@ Return ONLY valid JSON (no markdown, no explanations) with this structure:
           
           if (mode === 'backend') {
             // Use backend YouTube API
-            videos = await apiRequest('/youtube-search', {
-              query: week.searchKeywords?.[0] || week.title,
+            // YouTube API expects keywords as an array
+            const keywords = week.searchKeywords || [week.title]
+            videos = await apiRequest('/youtube', {
+              keywords: keywords,
               maxResults: 3
             })
           } else {

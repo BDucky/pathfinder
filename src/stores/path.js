@@ -97,7 +97,7 @@ export const usePathStore = defineStore('path', {
     async generatePathStructure(apiKey, topic, level, duration, hoursPerWeek) {
       const genAI = new GoogleGenerativeAI(apiKey)
       const model = genAI.getGenerativeModel({ 
-        model: 'models/gemini-flash-latest',
+        model: 'models/gemini-2.5-flash',
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 4096,
