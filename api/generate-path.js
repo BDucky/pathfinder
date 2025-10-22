@@ -90,15 +90,15 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
     // Use the full model path that works with SDK 0.21+
-    // Using gemini-2.5-flash for faster responses (ideal for time-limited functions)
+    // Using gemini-2.5-pro for faster responses (ideal for time-limited functions)
     const model = genAI.getGenerativeModel({ 
-      model: 'models/gemini-2.5-flash',
+      model: 'models/gemini-2.5-pro',
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 4096, // Limit output for faster generation
       }
     })
-    console.log('Model initialized: models/gemini-2.5-flash')
+    console.log('Model initialized: models/gemini-2.5-pro')
 
     console.log('Generating learning path with AI...')
     // Optimized prompt for faster generation
@@ -166,6 +166,12 @@ Return ONLY valid JSON (no markdown, no explanations) with this structure:
     // Clean up response - remove markdown code blocks if present
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
 
+    // Try to extract JSON if there's extra text
+    let jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      text = jsonMatch[0]
+    }
+
     // Parse JSON
     let pathStructure
     try {
@@ -173,8 +179,28 @@ Return ONLY valid JSON (no markdown, no explanations) with this structure:
       console.log('Successfully parsed AI response')
     } catch (parseError) {
       console.error('Failed to parse AI response:', parseError.message)
-      console.error('AI response preview:', text.substring(0, 500))
-      return sendError(res, 500, 'AI returned invalid format. Please try again.')
+      console.error('AI response text:', text)
+      console.error('Text length:', text.length)
+      console.error('First 500 chars:', text.substring(0, 500))
+      console.error('Last 500 chars:', text.substring(text.length - 500))
+      
+      return sendError(res, 500, `AI returned invalid format. Parse error: ${parseError.message}. Please try again.`)
+    }
+
+    // Validate the structure
+    if (!pathStructure.title || !pathStructure.weeks || !Array.isArray(pathStructure.weeks)) {
+      console.error('Invalid path structure:', {
+        hasTitle: !!pathStructure.title,
+        hasWeeks: !!pathStructure.weeks,
+        weeksIsArray: Array.isArray(pathStructure.weeks),
+        structure: pathStructure
+      })
+      return sendError(res, 500, 'AI returned incomplete structure. Missing required fields.')
+    }
+
+    if (pathStructure.weeks.length === 0) {
+      console.error('Path has no weeks')
+      return sendError(res, 500, 'AI returned empty learning path. Please try again.')
     }
 
     // Return successful response

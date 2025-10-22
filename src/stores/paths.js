@@ -132,7 +132,7 @@ export const usePathsStore = defineStore('paths', {
     async generatePathStructure(apiKey, topic, level, duration, hoursPerWeek) {
       const genAI = new GoogleGenerativeAI(apiKey)
       const model = genAI.getGenerativeModel({ 
-        model: 'models/gemini-2.5-flash',
+        model: 'models/gemini-2.5-pro',
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 4096,
@@ -161,15 +161,39 @@ Return ONLY valid JSON (no markdown, no explanations) with this structure:
   ]
 }`
 
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-      let text = response.text()
+      try {
+        const result = await model.generateContent(prompt)
+        const response = await result.response
+        let text = response.text()
 
-      // Clean up response - remove markdown code blocks if present
-      text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        // Clean up response - remove markdown code blocks if present
+        text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
 
-      const pathStructure = JSON.parse(text)
-      return pathStructure
+        // Try to extract JSON if there's extra text
+        const jsonMatch = text.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          text = jsonMatch[0]
+        }
+
+        const pathStructure = JSON.parse(text)
+        
+        // Validate structure
+        if (!pathStructure.title || !pathStructure.weeks || !Array.isArray(pathStructure.weeks)) {
+          throw new Error('AI returned incomplete structure. Missing required fields.')
+        }
+        
+        if (pathStructure.weeks.length === 0) {
+          throw new Error('AI returned empty learning path.')
+        }
+        
+        return pathStructure
+      } catch (error) {
+        console.error('Error generating path structure:', error)
+        if (error.message?.includes('overloaded')) {
+          throw new Error('AI service is overloaded. Please try again in a few moments.')
+        }
+        throw new Error(error.message || 'Failed to generate learning path structure')
+      }
     },
 
     /**

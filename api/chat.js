@@ -69,17 +69,27 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Error in chat:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     
     // Handle specific error types
     if (error.message?.includes('API key')) {
       return sendError(res, 500, 'AI service configuration error')
     }
     
-    if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
-      return sendError(res, 503, 'AI service temporarily unavailable. Please try again later.')
+    if (error.message?.includes('quota') || error.message?.includes('rate limit') || error.message?.includes('overloaded')) {
+      return sendError(res, 503, 'AI service is overloaded. Please try again later.')
     }
 
-    return sendError(res, 500, 'An error occurred while processing your message')
+    if (error.message?.includes('Safety') || error.message?.includes('blocked')) {
+      return sendError(res, 400, 'Message blocked by safety filters. Please rephrase your message.')
+    }
+
+    // Return the actual error message for debugging
+    return sendError(res, 500, error.message || 'An error occurred while processing your message')
   }
 }
 
@@ -87,40 +97,57 @@ export default async function handler(req, res) {
  * Chat with Google Gemini AI
  */
 async function chatWithGemini(message, systemContext, conversationHistory = []) {
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  // Use full model path format: models/gemini-pro
-  const model = genAI.getGenerativeModel({ 
-    model: 'models/gemini-2.5-flash',
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 1024,
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    // Use full model path format: models/gemini-pro
+    const model = genAI.getGenerativeModel({ 
+      model: 'models/gemini-2.5-pro',
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      }
+    })
+
+    // Build conversation history for Gemini
+    const history = conversationHistory
+      .slice(-10) // Keep last 10 messages to avoid token limits
+      .map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      }))
+
+    console.log('Starting Gemini chat with history length:', history.length)
+
+    // Start chat with history
+    const chat = model.startChat({
+      history,
+      generationConfig: {
+        maxOutputTokens: 1024,
+      },
+    })
+
+    // Add system context to the message
+    const contextualMessage = systemContext 
+      ? `${systemContext}\n\n---\n\nUser: ${message}`
+      : message
+
+    console.log('Sending message to Gemini...')
+    const result = await chat.sendMessage(contextualMessage)
+    const response = await result.response
+    const text = response.text()
+    
+    console.log('Gemini response received, length:', text?.length)
+    
+    if (!text) {
+      throw new Error('Empty response from Gemini AI')
     }
-  })
-
-  // Build conversation history for Gemini
-  const history = conversationHistory
-    .slice(-10) // Keep last 10 messages to avoid token limits
-    .map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }))
-
-  // Start chat with history
-  const chat = model.startChat({
-    history,
-    generationConfig: {
-      maxOutputTokens: 1024,
-    },
-  })
-
-  // Add system context to the message
-  const contextualMessage = systemContext 
-    ? `${systemContext}\n\n---\n\nUser: ${message}`
-    : message
-
-  const result = await chat.sendMessage(contextualMessage)
-  const response = await result.response
-  return response.text()
+    
+    return text
+  } catch (error) {
+    console.error('Error in chatWithGemini:', error)
+    // Re-throw with more context
+    throw new Error(`Gemini AI Error: ${error.message}`)
+  }
 }
 
 /**

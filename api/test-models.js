@@ -36,10 +36,10 @@ async function listModels() {
     
     // Try the most common model names
     const modelsToTest = [
-      'gemini-2.5-flash',
+      'gemini-2.5-pro',
       'gemini-1.5-pro',
       'gemini-1.5-flash',
-      'models/gemini-2.5-flash',
+      'models/gemini-2.5-pro',
       'models/gemini-1.5-pro',
       'models/gemini-1.5-flash'
     ]
