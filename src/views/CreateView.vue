@@ -1,12 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { usePathsStore } from '../stores/paths'
+import { usePathStore } from '../stores/path'
 import { useLanguage } from '../composables/useLanguage'
 import { getActiveMode } from '../config/api'
 
 const router = useRouter()
-const pathsStore = usePathsStore()
+const pathStore = usePathStore()
 const { t } = useLanguage()
 
 const hasApiKeys = ref(false)
@@ -42,10 +42,10 @@ async function handleSubmit() {
   }
 
   // Clear any previous errors
-  pathsStore.error = null
+  pathStore.error = null
 
   try {
-    const newPath = await pathsStore.generateLearningPath({
+    const newPath = await pathStore.generateLearningPath({
       topic: topic.value.trim(),
       level: level.value,
       duration: duration.value,
@@ -65,9 +65,9 @@ function cancel() {
 }
 
 function dismissError() {
-  pathsStore.error = null
-  pathsStore.currentStep = ''
-  pathsStore.progress = 0
+  pathStore.error = null
+  pathStore.currentStep = ''
+  pathStore.progress = 0
 }
 </script>
 
@@ -113,7 +113,7 @@ function dismissError() {
               type="text"
               :placeholder="t('form.topic.placeholder')"
               class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              :disabled="pathsStore.isGenerating"
+              :disabled="pathStore.isGenerating"
               required
             />
           </div>
@@ -160,7 +160,7 @@ function dismissError() {
               min="1"
               max="52"
               class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              :disabled="pathsStore.isGenerating"
+              :disabled="pathStore.isGenerating"
               required
             />
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -179,7 +179,7 @@ function dismissError() {
               min="1"
               max="168"
               class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              :disabled="pathsStore.isGenerating"
+              :disabled="pathStore.isGenerating"
               required
             />
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -188,14 +188,14 @@ function dismissError() {
           </div>
 
           <!-- Error Message -->
-          <div v-if="pathsStore.error" class="p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded">
+          <div v-if="pathStore.error" class="p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded">
             <div class="flex items-start justify-between">
               <div class="flex items-start">
                 <span class="text-2xl mr-3">❌</span>
                 <div>
                   <h3 class="font-semibold text-red-800 dark:text-red-300">{{ t('common.error') }}</h3>
                   <p class="text-red-700 dark:text-red-400 text-sm mt-1">
-                    {{ pathsStore.error }}
+                    {{ pathStore.error }}
                   </p>
                 </div>
               </div>
@@ -209,7 +209,7 @@ function dismissError() {
           </div>
 
           <!-- Inline Loading Indicator -->
-          <div v-if="pathsStore.isGenerating" class="p-6 bg-primary-50 dark:bg-primary-900/20 border-l-4 border-primary-500 rounded">
+          <div v-if="pathStore.isGenerating" class="p-6 bg-primary-50 dark:bg-primary-900/20 border-l-4 border-primary-500 rounded">
             <div class="flex items-start">
               <div class="flex-shrink-0">
                 <div class="animate-spin rounded-full h-10 w-10 border-b-3 border-primary-600"></div>
@@ -219,16 +219,16 @@ function dismissError() {
                   {{ t('form.generating') }}
                 </h3>
                 <p class="text-primary-700 dark:text-primary-400 text-sm mb-3">
-                  {{ pathsStore.currentStep }}
+                  {{ pathStore.currentStep }}
                 </p>
                 <div class="w-full bg-primary-200 dark:bg-primary-900 rounded-full h-2">
                   <div
                     class="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                    :style="{ width: `${pathsStore.progress}%` }"
+                    :style="{ width: `${pathStore.progress}%` }"
                   ></div>
                 </div>
                 <p class="text-xs text-primary-600 dark:text-primary-400 mt-1">
-                  {{ pathsStore.progress }}% {{ t('common.complete') }}
+                  {{ pathStore.progress }}% {{ t('common.complete') }}
                 </p>
               </div>
             </div>
@@ -238,15 +238,19 @@ function dismissError() {
           <div class="flex gap-4 pt-4">
             <button
               type="submit"
-              :disabled="!hasApiKeys || pathsStore.isGenerating"
-              class="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg shadow-md transition-colors"
+              :disabled="!hasApiKeys || pathStore.isGenerating"
+              class="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg shadow-md transition-colors flex justify-center items-center"
             >
-              {{ pathsStore.isGenerating ? t('form.generating') : t('form.submit') }}
+              <svg v-if="pathStore.isGenerating" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>{{ pathStore.isGenerating ? t('form.generating') : t('form.submit') }}</span>
             </button>
             <button
               type="button"
               @click="cancel"
-              :disabled="pathsStore.isGenerating"
+              :disabled="pathStore.isGenerating"
               class="px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-medium rounded-lg transition-colors"
             >
               {{ t('form.cancel') }}

@@ -148,9 +148,12 @@ Constraints:
 
       let segText
       try {
-        const segResult = await model.generateContent(segmentPrompt)
+        const segResult = await model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: segmentPrompt }] }],
+          generationConfig: { responseMimeType: 'application/json' }
+        })
         const segResponse = await segResult.response
-        segText = cleanToJson(segResponse.text())
+        segText = cleanToJson(await segResponse.text())
       } catch (e) {
         console.error(`Segment ${startWeek}-${endWeek} generation failed:`, e.message)
         throw new Error(`Failed to generate weeks ${startWeek}-${endWeek}: ${e.message}`)
@@ -171,7 +174,7 @@ Constraints:
     const title = `${finalLevel} ${topic} Learning Path`
 
     // Generate weeks in segments to avoid token/length issues
-    const segmentSize = 8
+    const segmentSize = 5
     const allWeeks = []
     for (let start = 1; start <= durationNum; start += segmentSize) {
       const end = Math.min(durationNum, start + segmentSize - 1)
