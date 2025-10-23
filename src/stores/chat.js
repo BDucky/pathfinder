@@ -180,7 +180,7 @@ Hãy trở thành người đồng hành tuyệt vời nhất cho học viên!`
 
       const genAI = new GoogleGenerativeAI(apiKey)
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-pro',
+        model: 'gemini-2.5-pro',
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 1024,
@@ -233,7 +233,7 @@ Hãy trở thành người đồng hành tuyệt vời nhất cho học viên!`
 
       const chatCompletion = await groq.chat.completions.create({
         messages,
-        model: 'llama-3.3-70b-versatile', // Fast and powerful
+        model: 'llama-3.1-8b-instant', // Fast and powerful
         temperature: 0.7,
         max_tokens: 1024,
         top_p: 1,

@@ -117,7 +117,7 @@ async function chatWithGroq(message, systemContext, conversationHistory = []) {
   // Call Groq API
   const chatCompletion = await groq.chat.completions.create({
     messages,
-    model: 'llama3-8b-8192', // Using a smaller, faster model for chat
+    model: 'llama-3.1-8b-instant', // Using a smaller, faster model for chat
     temperature: 0.7,
     max_tokens: 1024,
     top_p: 1,

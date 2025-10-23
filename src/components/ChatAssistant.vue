@@ -72,6 +72,7 @@ const currentProvider = {
 }
 
 onMounted(() => {
+  resolveProviders()
   // Load saved messages and preferences
   chatStore.loadMessages()
   // Force provider to groq on load
@@ -118,7 +119,8 @@ const sendMessage = async () => {
 
   userInput.value = ''
   // Ensure provider is always groq
-  await chatStore.sendMessage(message, 'groq')
+  chatStore.switchProvider('groq')
+  await chatStore.sendMessage(message)
 }
 
 const useQuickAction = (action) => {

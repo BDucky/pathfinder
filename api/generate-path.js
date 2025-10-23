@@ -77,8 +77,8 @@ export default async function handler(req, res) {
 
     // Initialize Gemini AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-    // Use current Gemini model naming (1.5-pro)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+    // Use current Gemini model naming (2.5-pro)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' })
 
     // Generate learning path using AI
     const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap.
