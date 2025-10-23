@@ -27,12 +27,7 @@ export default async function handler(req, res) {
 
   try {
     // Validate environment variables
-    try {
-      validateEnvVars(['GEMINI_API_KEY'])
-    } catch (envError) {
-      console.error('Environment variable validation failed:', envError.message)
-      return sendError(res, 500, 'Server configuration error: Missing API key. Please contact administrator.')
-    }
+    validateEnvVars(['GEMINI_API_KEY'])
 
     // Rate limiting: 10 requests per minute per IP
     const clientIP = getClientIP(req)
@@ -40,11 +35,9 @@ export default async function handler(req, res) {
       return sendError(res, 429, 'Too many requests. Please try again later.')
     }
 
-    // Parse and validate request body
+    // Validate request body (parse if needed)
     const body = await parseJsonBody(req)
     const { topic, level, duration, hoursPerWeek } = body
-    
-    console.log('Request received:', { topic, level, duration, hoursPerWeek })
 
     if (!topic || !level || !duration || !hoursPerWeek) {
       return sendError(res, 400, 'Missing required fields: topic, level, duration, hoursPerWeek')
@@ -83,134 +76,67 @@ export default async function handler(req, res) {
     }
 
     // Initialize Gemini AI
-    console.log('Initializing Gemini AI...')
-    console.log('API Key present:', !!process.env.GEMINI_API_KEY)
-    console.log('API Key length:', process.env.GEMINI_API_KEY?.length)
-    
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    // Use current Gemini model naming (1.5-pro)
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
 
-    // Using the latest stable and powerful model
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-pro',
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 4096, // Limit output for faster generation
-      }
-    })
-    console.log('Model initialized: gemini-1.5-pro')
+    // Generate learning path using AI
+    const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap.
 
-    console.log('Generating learning path with AI (segmented)...')
-
-    // Helpers: JSON cleanup and parsing
-    function cleanToJson(text) {
-      if (!text || typeof text !== 'string') return ''
-      let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      // Prefer object, else array
-      const objStart = cleaned.indexOf('{')
-      const objEnd = cleaned.lastIndexOf('}')
-      const arrStart = cleaned.indexOf('[')
-      const arrEnd = cleaned.lastIndexOf(']')
-      if (objStart !== -1 && objEnd !== -1 && objEnd > objStart) {
-        return cleaned.substring(objStart, objEnd + 1)
-      }
-      if (arrStart !== -1 && arrEnd !== -1 && arrEnd > arrStart) {
-        return cleaned.substring(arrStart, arrEnd + 1)
-      }
-      return cleaned
-    }
-
-    async function generateWeeksRange(startWeek, endWeek) {
-      const segmentPrompt = `You are an expert learning path designer.
-
-Create ONLY weeks ${startWeek}-${endWeek} for the learning path:
+Input:
 - Topic: ${topic}
-- Level: ${finalLevel}
+- Current Level: ${level}
+- Duration: ${durationNum} weeks
 - Hours per week: ${hoursNum}
 
-Return STRICTLY a JSON array (no markdown, no comments, no prose) of week objects with this exact schema:
-[
-  {
-    "weekNumber": ${startWeek},
-    "title": "Week title (<= 60 chars)",
-    "objectives": ["objective 1", "objective 2"],
-    "topics": ["topic 1", "topic 2", "topic 3"],
-    "estimatedHours": 8,
-    "searchKeywords": ["keyword1 tutorial", "keyword2 beginner"],
-    "exercises": "Exercise (<= 120 chars)"
-  }
-]
+Create a structured learning path with the following requirements:
+1. Break down the learning journey into ${durationNum} weeks
+2. Each week should have:
+   - Week number and title
+   - Learning objectives (2-4 specific goals)
+   - Topics to cover (3-5 subtopics)
+   - Estimated hours needed
+   - Search keywords for finding relevant videos (2-3 keywords optimized for YouTube search)
+3. Progression should be logical and appropriate for the skill level
+4. Include practical projects or exercises
 
-Constraints:
-- Keep strings concise
-- Ensure weekNumber values are correct and sequential
-- Array lengths: objectives 2, topics 3, searchKeywords 2
-- Do NOT include any text outside the JSON array.`
+Return ONLY a valid JSON object (no markdown, no code blocks) in this exact structure:
+{
+  "title": "Learning path title",
+  "topic": "${topic}",
+  "level": "${finalLevel}",
+  "totalWeeks": ${durationNum},
+  "hoursPerWeek": ${hoursNum},
+  "weeks": [
+    {
+      "weekNumber": 1,
+      "title": "Week title",
+      "objectives": ["objective 1", "objective 2"],
+      "topics": ["topic 1", "topic 2", "topic 3"],
+      "estimatedHours": 10,
+      "searchKeywords": ["keyword1 tutorial", "keyword2 beginner"],
+      "exercises": "Practical exercise description"
+    }
+  ]
+}`
 
-      let segText
-      try {
-        const segResult = await model.generateContent({
-          contents: [{ role: 'user', parts: [{ text: segmentPrompt }] }],
-          generationConfig: { responseMimeType: 'application/json' }
-        })
-        const segResponse = await segResult.response
-        segText = cleanToJson(await segResponse.text())
-      } catch (e) {
-        console.error(`Segment ${startWeek}-${endWeek} generation failed:`, e.message)
-        throw new Error(`Failed to generate weeks ${startWeek}-${endWeek}: ${e.message}`)
-      }
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    let text = response.text()
 
-      try {
-        const weeks = JSON.parse(segText)
-        if (!Array.isArray(weeks)) throw new Error('Expected JSON array')
-        return weeks
-      } catch (e) {
-        console.error(`Parse error for weeks ${startWeek}-${endWeek}:`, e.message)
-        console.error('Segment text preview:', segText?.slice(0, 400))
-        throw new Error(`Invalid JSON for weeks ${startWeek}-${endWeek}`)
-      }
+    // Clean up response - remove markdown code blocks if present
+    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+
+    // Parse JSON
+    let pathStructure
+    try {
+      pathStructure = JSON.parse(text)
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', text)
+      return sendError(res, 500, 'AI returned invalid format. Please try again.')
     }
 
-    // Build title
-    const title = `${finalLevel} ${topic} Learning Path`
-
-    // Generate weeks in segments to avoid token/length issues
-    const segmentSize = 5
-    const allWeeks = []
-    for (let start = 1; start <= durationNum; start += segmentSize) {
-      const end = Math.min(durationNum, start + segmentSize - 1)
-      const segWeeks = await generateWeeksRange(start, end)
-      allWeeks.push(...segWeeks)
-    }
-
-    // Normalize and validate weeks
-    const normalizedWeeks = allWeeks
-      .filter(Boolean)
-      .map((w, idx) => ({
-        weekNumber: Number(w.weekNumber ?? idx + 1),
-        title: String(w.title || `Week ${idx + 1}`),
-        objectives: Array.isArray(w.objectives) ? w.objectives.slice(0, 3) : [],
-        topics: Array.isArray(w.topics) ? w.topics.slice(0, 5) : [],
-        estimatedHours: Number(w.estimatedHours || Math.round(hoursNum)),
-        searchKeywords: Array.isArray(w.searchKeywords) ? w.searchKeywords.slice(0, 3) : [],
-        exercises: String(w.exercises || 'Practice the covered topics')
-      }))
-      .slice(0, durationNum)
-
-    if (normalizedWeeks.length !== durationNum) {
-      console.error('Generated weeks count mismatch:', { expected: durationNum, got: normalizedWeeks.length })
-      return sendError(res, 500, 'Failed to generate complete learning path. Please try again.')
-    }
-
-    const pathStructure = {
-      title,
-      topic,
-      level: finalLevel,
-      totalWeeks: durationNum,
-      hoursPerWeek: hoursNum,
-      weeks: normalizedWeeks
-    }
-
-    console.log('Sending success response')
+    // Return successful response
     return sendSuccess(res, pathStructure)
 
   } catch (error) {
@@ -228,6 +154,3 @@ Constraints:
     return sendError(res, 500, 'An error occurred while generating the learning path')
   }
 }
-
-
-
