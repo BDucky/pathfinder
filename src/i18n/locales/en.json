@@ -56,7 +56,7 @@
     "duration": {
       "label": "Duration (weeks)",
       "min": "1 week minimum",
-      "max": "52 weeks maximum"
+      "max": "10 weeks maximum"
     },
     "hoursPerWeek": {
       "label": "Hours per week",
