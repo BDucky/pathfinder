@@ -150,10 +150,10 @@ function getStatus(path) {
         <div
           v-for="path in paths"
           :key="path.id"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden flex flex-col"
         >
           <!-- Card Header -->
-          <div class="p-6">
+          <div class="p-6 flex-grow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">

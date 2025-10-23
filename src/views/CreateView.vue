@@ -150,42 +150,34 @@ function dismissError() {
             </div>
           </div>
 
-          <!-- Duration -->
+          <!-- Duration Slider -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {{ t('form.duration.label') }}
+              {{ t('form.duration.label') }} <span class="font-bold text-primary-600 dark:text-primary-400">{{ duration }} {{ t('dashboard.card.weeks') }}</span>
             </label>
             <input
               v-model.number="duration"
-              type="number"
+              type="range"
               min="1"
               max="10"
-              class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
               :disabled="pathStore.isGenerating"
-              required
             />
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('form.duration.min') }} - {{ t('form.duration.max') }}
-            </p>
           </div>
 
-          <!-- Hours per Week -->
+          <!-- Hours per Week Slider -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {{ t('form.hoursPerWeek.label') }}
+              {{ t('form.hoursPerWeek.label') }} <span class="font-bold text-primary-600 dark:text-primary-400">{{ hoursPerWeek }} {{ t('path.hours') }}</span>
             </label>
             <input
               v-model.number="hoursPerWeek"
-              type="number"
+              type="range"
               min="1"
-              max="168"
-              class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              max="40"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
               :disabled="pathStore.isGenerating"
-              required
             />
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('form.hoursPerWeek.min') }} - {{ t('form.hoursPerWeek.max') }}
-            </p>
           </div>
 
           <!-- Error Message -->
