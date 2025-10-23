@@ -5,7 +5,8 @@ import { getActiveMode, apiRequest } from '../config/api'
 
 export const usePathStore = defineStore('path', {
   state: () => ({
-    learningPath: null,
+    learningPaths: [], // This will hold all paths
+    activePath: null,  // This will be the path currently being viewed
     isGenerating: false,
     error: null,
     currentStep: '',
@@ -13,75 +14,52 @@ export const usePathStore = defineStore('path', {
   }),
 
   actions: {
-    /**
-     * Main AI Agent Logic - Generates personalized learning path
-     * Supports both backend API and client-side mode
-     */
     async generateLearningPath({ topic, level, duration, hoursPerWeek }) {
       this.isGenerating = true
       this.error = null
       this.progress = 0
-      this.learningPath = null
 
       try {
         const mode = getActiveMode()
-        
-        if (!mode) {
-          throw new Error('API not configured. Please configure API keys in settings.')
-        }
+        if (!mode) throw new Error('API not configured. Please configure API keys in settings.')
 
-        // Step 1: Generate learning path structure
-        this.currentStep = 'Đang tạo cấu trúc lộ trình học tập...'
+        this.currentStep = 'Generating learning path structure...'
         this.progress = 20
 
         let pathStructure
-        
         if (mode === 'backend') {
-          // Use backend API
-          pathStructure = await apiRequest('/generate-path', {
-            topic,
-            level,
-            duration,
-            hoursPerWeek
-          })
+          pathStructure = await apiRequest('/generate-path', { topic, level, duration, hoursPerWeek })
         } else {
-          // Use client-side API keys
           const geminiApiKey = localStorage.getItem('gemini_api_key')
-          if (!geminiApiKey) {
-            throw new Error('Gemini API key is missing.')
-          }
-          
-          pathStructure = await this.generatePathStructure(
-            geminiApiKey,
-            topic,
-            level,
-            duration,
-            hoursPerWeek
-          )
+          if (!geminiApiKey) throw new Error('Gemini API key is missing.')
+          pathStructure = await this.generatePathStructure(geminiApiKey, topic, level, duration, hoursPerWeek)
         }
 
         this.progress = 50
-        this.currentStep = 'Đang tìm kiếm tài nguyên học liệu...'
+        this.currentStep = 'Fetching learning resources...'
 
-        // Step 2: Fetch resources (YouTube videos) for each week
-        const pathWithResources = await this.fetchResourcesForPath(
-          pathStructure,
-          mode
-        )
+        const pathWithResources = await this.fetchResourcesForPath(pathStructure, mode)
 
         this.progress = 90
-        this.currentStep = 'Hoàn tất...'
+        this.currentStep = 'Finalizing...'
 
-        // Step 3: Save and update state
-        this.learningPath = pathWithResources
-        this.savePath(pathWithResources)
+        const finalPath = {
+          ...pathWithResources,
+          id: Date.now(), // Simple unique ID
+          createdAt: new Date().toISOString()
+        }
+
+        this.addPath(finalPath)
+        this.setActivePath(finalPath.id)
 
         this.progress = 100
-        this.currentStep = 'Đã tạo lộ trình thành công!'
+        this.currentStep = 'Learning path created successfully!'
+        return finalPath // Return the created path
 
       } catch (error) {
         console.error('Error generating learning path:', error)
         this.error = error.message || 'An error occurred while generating the learning path.'
+        return null // Return null on failure
       } finally {
         this.isGenerating = false
         setTimeout(() => {
@@ -91,202 +69,113 @@ export const usePathStore = defineStore('path', {
       }
     },
 
-    /**
-     * Uses Gemini AI to generate learning path structure
-     */
     async generatePathStructure(apiKey, topic, level, duration, hoursPerWeek) {
       const genAI = new GoogleGenerativeAI(apiKey)
-      const model = genAI.getGenerativeModel({ 
-        model: 'models/gemini-2.5-pro',
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 4096,
-        }
-      })
-
-      const prompt = `Create a ${duration}-week learning path for "${topic}" at ${level} level (${hoursPerWeek} hours/week).
-
-Return ONLY valid JSON (no markdown, no explanations) with this structure:
-{
-  "title": "Learning path title",
-  "topic": "${topic}",
-  "level": "${level}",
-  "totalWeeks": ${duration},
-  "hoursPerWeek": ${hoursPerWeek},
-  "weeks": [
-    {
-      "weekNumber": 1,
-      "title": "Week title",
-      "objectives": ["objective 1", "objective 2"],
-      "topics": ["topic 1", "topic 2", "topic 3"],
-      "estimatedHours": 10,
-      "searchKeywords": ["keyword1 tutorial", "keyword2 beginner"],
-      "exercises": "Practical exercise description"
-    }
-  ]
-}`
-
+      const model = genAI.getGenerativeModel({ model: 'models/gemini-1.5-pro' })
+      const prompt = `Create a ${duration}-week learning path for "${topic}" at ${level} level (${hoursPerWeek} hours/week). Return ONLY valid JSON.`
       const result = await model.generateContent(prompt)
       const response = await result.response
-      let text = response.text()
-
-      // Clean up response - remove markdown code blocks if present
-      text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-
+      let text = response.text().replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       try {
-        const pathStructure = JSON.parse(text)
-        return pathStructure
+        return JSON.parse(text)
       } catch (parseError) {
         console.error('Failed to parse AI response:', text)
         throw new Error('AI returned invalid JSON format. Please try again.')
       }
     },
 
-    /**
-     * Fetches YouTube videos for each week's topics
-     * Supports both backend API and client-side mode
-     */
     async fetchResourcesForPath(pathStructure, mode) {
       const weeksWithResources = await Promise.all(
         pathStructure.weeks.map(async (week) => {
-          let videos
-          
-          if (mode === 'backend') {
-            // Use backend API
-            try {
-              videos = await apiRequest('/youtube', {
-                keywords: week.searchKeywords,
-                maxResults: 3
-              })
-            } catch (error) {
-              console.error('YouTube API error:', error)
-              videos = []
-            }
-          } else {
-            // Use client-side API key
-            const youtubeApiKey = localStorage.getItem('youtube_api_key')
-            if (youtubeApiKey) {
-              videos = await this.searchYouTubeVideos(
-                youtubeApiKey,
-                week.searchKeywords,
-                3
-              )
+          let videos = []
+          try {
+            if (mode === 'backend') {
+              videos = await apiRequest('/youtube', { keywords: week.searchKeywords, maxResults: 3 })
             } else {
-              videos = []
+              const youtubeApiKey = localStorage.getItem('youtube_api_key')
+              if (youtubeApiKey) {
+                videos = await this.searchYouTubeVideos(youtubeApiKey, week.searchKeywords, 3)
+              }
             }
+          } catch (error) {
+            console.error(`Failed to fetch YouTube videos for week ${week.weekNumber}:`, error)
           }
-
-          return {
-            ...week,
-            resources: videos,
-            completed: false
-          }
+          return { ...week, resources: videos, completed: false }
         })
       )
-
-      return {
-        ...pathStructure,
-        weeks: weeksWithResources,
-        createdAt: new Date().toISOString()
-      }
+      return { ...pathStructure, weeks: weeksWithResources }
     },
 
-    /**
-     * Searches YouTube for relevant educational videos
-     */
     async searchYouTubeVideos(apiKey, keywords, maxResults = 3) {
       const searchQuery = keywords.join(' ')
       const url = 'https://www.googleapis.com/youtube/v3/search'
-
       try {
-        const response = await axios.get(url, {
-          params: {
-            key: apiKey,
-            q: searchQuery,
-            part: 'snippet',
-            type: 'video',
-            maxResults: maxResults,
-            videoDuration: 'medium', // 4-20 minutes
-            relevanceLanguage: 'en',
-            safeSearch: 'strict'
-          }
-        })
-
-        return response.data.items.map(item => ({
-          id: item.id.videoId,
-          title: item.snippet.title,
-          description: item.snippet.description,
-          thumbnail: item.snippet.thumbnails.medium.url,
-          channelTitle: item.snippet.channelTitle,
-          url: `https://www.youtube.com/watch?v=${item.id.videoId}`
-        }))
+        const response = await axios.get(url, { params: { key: apiKey, q: searchQuery, part: 'snippet', type: 'video', maxResults } })
+        return response.data.items.map(item => ({ id: item.id.videoId, title: item.snippet.title, thumbnail: item.snippet.thumbnails.medium.url, channelTitle: item.snippet.channelTitle, url: `https://www.youtube.com/watch?v=${item.id.videoId}` }))
       } catch (error) {
         console.error('YouTube API error:', error)
-        // Return empty array if YouTube search fails - don't block the entire process
         return []
       }
     },
 
-    /**
-     * Saves learning path to localStorage
-     */
-    savePath(path) {
-      try {
-        localStorage.setItem('saved_learning_path', JSON.stringify(path))
-      } catch (error) {
-        console.error('Failed to save path:', error)
-      }
+    // --- CRUD Actions for Multiple Paths ---
+    addPath(path) {
+      this.learningPaths.push(path)
+      this.savePathsToStorage()
     },
 
-    /**
-     * Loads saved learning path from localStorage
-     */
-    loadSavedPath() {
-      try {
-        const saved = localStorage.getItem('saved_learning_path')
-        if (saved) {
-          this.learningPath = JSON.parse(saved)
-        }
-      } catch (error) {
-        console.error('Failed to load saved path:', error)
+    deletePath(pathId) {
+      this.learningPaths = this.learningPaths.filter(p => p.id !== pathId)
+      if (this.activePath?.id === pathId) {
+        this.activePath = null
       }
+      this.savePathsToStorage()
     },
 
-    /**
-     * Toggles completion status for a week
-     */
-    toggleWeekCompletion(weekNumber) {
-      if (this.learningPath && this.learningPath.weeks) {
-        const week = this.learningPath.weeks.find(w => w.weekNumber === weekNumber)
+    setActivePath(pathId) {
+      this.activePath = this.learningPaths.find(p => p.id == pathId) || null
+    },
+
+    toggleWeekCompletion(pathId, weekNumber) {
+      const path = this.learningPaths.find(p => p.id == pathId)
+      if (path) {
+        const week = path.weeks.find(w => w.weekNumber === weekNumber)
         if (week) {
           week.completed = !week.completed
-          this.savePath(this.learningPath)
+          this.savePathsToStorage()
         }
       }
     },
 
-    /**
-     * Clears current learning path
-     */
-    clearPath() {
-      this.learningPath = null
-      localStorage.removeItem('saved_learning_path')
+    savePathsToStorage() {
+      try {
+        localStorage.setItem('learning_paths_list', JSON.stringify(this.learningPaths))
+      } catch (error) {
+        console.error('Failed to save paths to localStorage:', error)
+      }
+    },
+
+    loadPathsFromStorage() {
+      try {
+        const saved = localStorage.getItem('learning_paths_list')
+        if (saved) {
+          this.learningPaths = JSON.parse(saved)
+        }
+      } catch (error) {
+        console.error('Failed to load paths from localStorage:', error)
+      }
     }
   },
 
   getters: {
-    hasPath: (state) => !!state.learningPath,
-    completedWeeks: (state) => {
-      if (!state.learningPath?.weeks) return 0
-      return state.learningPath.weeks.filter(w => w.completed).length
-    },
-    totalWeeks: (state) => {
-      return state.learningPath?.weeks?.length || 0
-    },
-    progressPercentage: (state) => {
-      const total = state.learningPath?.weeks?.length || 0
+    hasPaths: (state) => state.learningPaths.length > 0,
+    completedPathsCount: (state) => state.learningPaths.filter(p => p.weeks.every(w => w.completed)).length,
+    inProgressPathsCount: (state) => state.learningPaths.filter(p => !p.weeks.every(w => w.completed) && p.weeks.some(w => w.completed)).length,
+    activePathProgress: (state) => {
+      if (!state.activePath?.weeks) return 0
+      const total = state.activePath.weeks.length
       if (total === 0) return 0
-      const completed = state.learningPath.weeks.filter(w => w.completed).length
+      const completed = state.activePath.weeks.filter(w => w.completed).length
       return Math.round((completed / total) * 100)
     }
   }

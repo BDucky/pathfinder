@@ -1,36 +1,36 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { usePathsStore } from '../stores/paths'
+import { usePathStore } from '../stores/path'
 import { useLanguage } from '../composables/useLanguage'
 import DeleteConfirmModal from '../components/DeleteConfirmModal.vue'
 
 const route = useRoute()
 const router = useRouter()
-const pathsStore = usePathsStore()
+const pathStore = usePathStore()
 const { t } = useLanguage()
 
-const pathId = route.params.id
+const pathId = computed(() => route.params.id)
 const showDeleteModal = ref(false)
 
 onMounted(() => {
-  pathsStore.loadPaths()
-  pathsStore.setCurrentPath(pathId)
+  pathStore.loadPathsFromStorage()
+  pathStore.setActivePath(pathId.value)
 })
 
-const path = computed(() => pathsStore.currentPath)
-const progress = computed(() => pathsStore.getPathProgress(pathId))
+const path = computed(() => pathStore.activePath)
+const progress = computed(() => pathStore.activePathProgress)
 
 function goBack() {
   router.push('/dashboard')
 }
 
 function toggleWeek(weekNumber) {
-  pathsStore.toggleWeekCompletion(pathId, weekNumber)
+  pathStore.toggleWeekCompletion(pathId.value, weekNumber)
 }
 
 function isWeekCompleted(weekNumber) {
-  return path.value?.completedWeeks?.includes(weekNumber) || false
+  return path.value?.weeks.find(w => w.weekNumber === weekNumber)?.completed || false
 }
 
 function confirmDelete() {
@@ -38,7 +38,7 @@ function confirmDelete() {
 }
 
 function deletePath() {
-  pathsStore.deletePath(pathId)
+  pathStore.deletePath(pathId.value)
   showDeleteModal.value = false
   router.push('/dashboard')
 }
@@ -48,6 +48,7 @@ function cancelDelete() {
 }
 
 function formatDate(dateString) {
+  if (!dateString) return ''
   const date = new Date(dateString)
   return date.toLocaleDateString(undefined, {
     year: 'numeric',
@@ -138,7 +139,7 @@ function formatDate(dateString) {
               <div>
                 <div class="text-sm text-gray-600 dark:text-gray-400">{{ t('detail.progress') }}</div>
                 <div class="font-medium text-gray-900 dark:text-white">
-                  {{ path.completedWeeks.length }} / {{ path.weeks.length }} {{ t('dashboard.card.weeks') }}
+                  {{ path.weeks.filter(w => w.completed).length }} / {{ path.weeks.length }} {{ t('dashboard.card.weeks') }}
                 </div>
               </div>
             </div>

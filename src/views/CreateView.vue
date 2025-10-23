@@ -45,20 +45,15 @@ async function handleSubmit() {
   pathStore.error = null
 
   try {
-    await pathStore.generateLearningPath({
+    const newPath = await pathStore.generateLearningPath({
       topic: topic.value.trim(),
       level: level.value,
       duration: duration.value,
       hoursPerWeek: hoursPerWeek.value
     })
 
-    // After the action, check if it was successful before navigating
-    if (pathStore.learningPath && !pathStore.error) {
-      // The path is stored in the store, we can navigate to the main path view
-      router.push(`/path`)
-    } else {
-      // If there's an error, it will be displayed on the current page
-      console.error('Path generation failed, staying on create page to show error.')
+    if (newPath) {
+      router.push(`/path/${newPath.id}`)
     }
   } catch (error) {
     console.error('Error creating path:', error)

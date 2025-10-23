@@ -1,24 +1,24 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { usePathsStore } from '../stores/paths'
+import { usePathStore } from '../stores/path'
 import { useLanguage } from '../composables/useLanguage'
 import DeleteConfirmModal from '../components/DeleteConfirmModal.vue'
 
 const router = useRouter()
-const pathsStore = usePathsStore()
+const pathStore = usePathStore()
 const { t } = useLanguage()
 
 const showDeleteModal = ref(false)
 const pathToDelete = ref(null)
 
 onMounted(() => {
-  pathsStore.loadPaths()
+  pathStore.loadPathsFromStorage()
 })
 
-const paths = computed(() => pathsStore.paths)
-const activePaths = computed(() => pathsStore.activePaths)
-const completedPaths = computed(() => pathsStore.completedPaths)
+const paths = computed(() => pathStore.learningPaths)
+const completedPathsCount = computed(() => pathStore.completedPathsCount)
+const inProgressPathsCount = computed(() => pathStore.inProgressPathsCount)
 
 function viewPath(pathId) {
   router.push(`/path/${pathId}`)
@@ -35,7 +35,7 @@ function confirmDelete(pathId) {
 
 function deletePath() {
   if (pathToDelete.value) {
-    pathsStore.deletePath(pathToDelete.value)
+    pathStore.deletePath(pathToDelete.value)
   }
   showDeleteModal.value = false
   pathToDelete.value = null
@@ -47,6 +47,7 @@ function cancelDelete() {
 }
 
 function formatDate(dateString) {
+  if (!dateString) return ''
   const date = new Date(dateString)
   return date.toLocaleDateString(undefined, {
     year: 'numeric',
@@ -55,8 +56,17 @@ function formatDate(dateString) {
   })
 }
 
-function getProgress(pathId) {
-  return pathsStore.getPathProgress(pathId)
+function getProgress(path) {
+  if (!path || !path.weeks || path.weeks.length === 0) return 0
+  const completed = path.weeks.filter(w => w.completed).length
+  return Math.round((completed / path.weeks.length) * 100)
+}
+
+function getStatus(path) {
+  const progress = getProgress(path)
+  if (progress === 100) return { text: 'Completed', class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' }
+  if (progress > 0) return { text: 'In Progress', class: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' }
+  return { text: 'Not Started', class: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }
 }
 </script>
 
@@ -101,7 +111,7 @@ function getProgress(pathId) {
                 {{ t('dashboard.inProgress') }}
               </p>
               <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                {{ activePaths.length }}
+                {{ inProgressPathsCount }}
               </p>
             </div>
           </div>
@@ -117,7 +127,7 @@ function getProgress(pathId) {
                 {{ t('dashboard.completed') }}
               </p>
               <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                {{ completedPaths.length }}
+                {{ completedPathsCount }}
               </p>
             </div>
           </div>
@@ -155,13 +165,9 @@ function getProgress(pathId) {
               </div>
               <span
                 class="px-3 py-1 text-xs font-medium rounded-full"
-                :class="{
-                  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': path.status === 'completed',
-                  'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200': path.status === 'active',
-                  'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300': path.status === 'archived'
-                }"
+                :class="getStatus(path).class"
               >
-                {{ path.status }}
+                {{ getStatus(path).text }}
               </span>
             </div>
 
@@ -169,12 +175,12 @@ function getProgress(pathId) {
             <div class="mb-4">
               <div class="flex items-center justify-between text-sm mb-2">
                 <span class="text-gray-600 dark:text-gray-400">{{ t('dashboard.card.progress') }}</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ getProgress(path.id) }}%</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ getProgress(path) }}%</span>
               </div>
               <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
                   class="bg-primary-600 h-2 rounded-full transition-all"
-                  :style="{ width: `${getProgress(path.id)}%` }"
+                  :style="{ width: `${getProgress(path)}%` }"
                 ></div>
               </div>
             </div>
