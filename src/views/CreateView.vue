@@ -174,7 +174,7 @@ function dismissError() {
               v-model.number="hoursPerWeek"
               type="range"
               min="1"
-              max="40"
+              max="20"
               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
               :disabled="pathStore.isGenerating"
             />

@@ -141,14 +141,14 @@ const levelOptions = [
           v-model.number="hoursPerWeek"
           type="range"
           min="1"
-          max="40"
+          max="20"
           step="1"
           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
           :disabled="disabled || isGenerating"
         />
         <div class="flex justify-between text-xs text-gray-500 mt-1">
           <span>1 giờ</span>
-          <span>40 giờ</span>
+          <span>20 giờ</span>
         </div>
       </div>
 
